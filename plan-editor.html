@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Éditeur de Plan — Vidéoprotection</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#1a1a2e}
+#header{background:#16213e;color:white;padding:8px 16px;display:flex;align-items:center;gap:12px;border-bottom:2px solid #0f3460;min-height:46px}
+#header h1{font-size:15px;font-weight:600;white-space:nowrap}
+#hbtns{margin-left:auto;display:flex;gap:6px}
+.hbtn{background:#0f3460;color:white;border:1px solid #3a6090;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;white-space:nowrap}
+.hbtn:hover{background:#e94560;border-color:#e94560}
+#main{display:flex;flex:1;overflow:hidden}
+#toolbar{width:62px;background:#16213e;border-right:1px solid #0f3460;padding:6px 4px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.tbtn{width:54px;height:54px;border-radius:8px;border:2px solid transparent;background:#0f3460;color:white;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;gap:2px;transition:all .15s}
+.tbtn svg{width:22px;height:22px;pointer-events:none}
+.tbtn:hover{background:#1a4080;border-color:#5a9fff}
+.tbtn.active{background:#e94560;border-color:#ff8099}
+.tsep{height:1px;background:#0f3460;margin:3px 0}
+#cvwrap{flex:1;overflow:hidden;position:relative;background:#c8ccd4}
+canvas{display:block}
+#sidebar{width:190px;background:#16213e;border-left:1px solid #0f3460;color:white;padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+#sidebar h3{font-size:11px;text-transform:uppercase;color:#7eb3ff;letter-spacing:1px;margin-bottom:2px}
+.pg{background:#0f3460;border-radius:6px;padding:8px;font-size:12px}
+.pl{font-size:10px;color:#aac4e8;margin-bottom:3px}
+.pi{width:100%;background:#16213e;border:1px solid #2a5090;border-radius:4px;color:white;padding:3px 7px;font-size:12px}
+.pi:focus{outline:none;border-color:#7eb3ff}
+#sbar{background:#0d2040;color:#aac4e8;padding:3px 10px;font-size:11px;display:flex;gap:16px}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;margin:2px 0}
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>🏢 Éditeur Plan Vidéoprotection — SECUTECH</h1>
+  <div id="hbtns">
+    <button class="hbtn" onclick="undo()">↩ Annuler</button>
+    <button class="hbtn" onclick="clearAll()">🗑 Effacer</button>
+    <button class="hbtn" onclick="exportPNG()">🖼 PNG</button>
+    <button class="hbtn" onclick="exportPDF()">📄 PDF</button>
+  </div>
+</div>
+<div id="main">
+  <div id="toolbar">
+    <button class="tbtn" id="btn-select" onclick="setTool('select')" title="Sélectionner (S)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-4 7z" fill="currentColor"/></svg>Sél.
+    </button>
+    <div class="tsep"></div>
+    <button class="tbtn" id="btn-wall" onclick="setTool('wall')" title="Mur (W)">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="9" x2="3" y2="15"/><line x1="21" y1="9" x2="21" y2="15"/></svg>Mur
+    </button>
+    <button class="tbtn" id="btn-room" onclick="setTool('room')" title="Pièce rectangle (R)">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="3" y="3" width="18" height="18" rx="1"/></svg>Pièce
+    </button>
+    <div class="tsep"></div>
+    <button class="tbtn" id="btn-door" onclick="setTool('door')" title="Porte simple P (P)">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="4" y1="20" x2="14" y2="20"/><line x1="4" y1="20" x2="4" y2="9"/><path d="M4 9 A10 10 0 0 1 14 20"/></svg>Porte P
+    </button>
+    <button class="tbtn" id="btn-door2" onclick="setTool('door2')" title="Double porte DP (D)">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="2" y1="20" x2="22" y2="20"/><line x1="12" y1="20" x2="12" y2="11"/><path d="M12 11 A9 9 0 0 0 3 20"/><path d="M12 11 A9 9 0 0 1 21 20"/></svg>DP
+    </button>
+    <button class="tbtn" id="btn-window" onclick="setTool('window')" title="Fenêtre F (F)">
+      <svg viewBox="0 0 24 24" stroke="#7ab8d4" stroke-width="2" fill="none"><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="8" x2="3" y2="16"/><line x1="21" y1="8" x2="21" y2="16"/></svg>Fenêtre
+    </button>
+    <div class="tsep"></div>
+    <button class="tbtn" id="btn-camera" onclick="setTool('camera')" title="Caméra (C)">
+      <svg viewBox="0 0 24 24" stroke="#e94560" stroke-width="2" fill="none"><rect x="2" y="7" width="13" height="10" rx="2" fill="rgba(233,69,96,.2)"/><polygon points="15,10 22,7 22,17 15,14" fill="rgba(233,69,96,.2)"/></svg>Caméra
+    </button>
+    <button class="tbtn" id="btn-label" onclick="setTool('label')" title="Étiquette (T)">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 6h16M4 12h10M4 18h6"/></svg>Texte
+    </button>
+    <div class="tsep"></div>
+    <button class="tbtn" onclick="deleteSelected()" title="Supprimer (Del)" style="border-color:#5a0020">
+      <svg viewBox="0 0 24 24" stroke="#e94560" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Suppr.
+    </button>
+  </div>
+
+  <div id="cvwrap"><canvas id="cv"></canvas></div>
+
+  <div id="sidebar">
+    <h3>Outil</h3>
+    <div class="pg">
+      <div class="pl">Actif</div>
+      <div id="ptool" style="font-weight:600">Mur</div>
+      <div class="pl" style="margin-top:6px;line-height:1.7;color:#8ab">
+        <b style="color:white">Clic droit</b> : déplacer vue<br>
+        <b style="color:white">Molette</b> : zoom<br>
+        <b style="color:white">Échap</b> : annuler dessin<br>
+        <b style="color:white">Entrée / Dbl-clic</b> : fin mur
+      </div>
+    </div>
+
+    <h3>Propriétés</h3>
+    <div class="pg" id="ppanel"><div class="pl">Cliquez un élément</div></div>
+
+    <h3>Grille</h3>
+    <div class="pg">
+      <div class="pl">Taille (1 case = 20 cm)</div>
+      <select class="pi" onchange="G.sz=+this.value;render()">
+        <option value="20" selected>20 px</option>
+        <option value="30">30 px</option>
+        <option value="40">40 px</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;cursor:pointer">
+        <input type="checkbox" id="snapcb" checked onchange="G.snap=this.checked"> Aimant grille
+      </label>
+      <div class="pl" style="margin-top:6px">Force du magnétisme : <span id="snrlbl">7</span></div>
+      <input type="range" class="pi" min="4" max="40" value="7" style="padding:0"
+        oninput="G.snapRadius=+this.value;document.getElementById('snrlbl').textContent=this.value">
+    </div>
+
+    <h3>Caméra</h3>
+    <div class="pg">
+      <div class="pl">Angle de vue : <span id="fovlbl">70°</span></div>
+      <input type="range" class="pi" id="fovr" min="20" max="360" value="70" style="padding:0"
+        oninput="G.camFov=+this.value;document.getElementById('fovlbl').textContent=this.value+'°';if(SEL&&SEL.t==='cam'){SEL.fov=G.camFov}render()">
+    </div>
+
+    <h3>Légende</h3>
+    <div class="pg" style="line-height:1.9">
+      <div class="leg"><div style="width:20px;height:4px;background:#111;border-radius:1px"></div>Mur</div>
+      <div class="leg"><div style="width:20px;height:10px;background:rgba(122,184,212,.5);border:1.5px solid #5a9fc7"></div>Fenêtre</div>
+      <div class="leg"><svg width="20" height="14"><line x1="0" y1="12" x2="0" y2="2" stroke="#111" stroke-width="1.5"/><path d="M0 2 A10 10 0 0 1 10 12" stroke="#111" fill="none" stroke-width="1.5" stroke-dasharray="3,2"/></svg>Porte</div>
+      <div class="leg"><svg width="20" height="14"><rect x="0" y="3" width="11" height="8" stroke="#e94560" fill="rgba(233,69,96,.2)" stroke-width="1.5"/><polygon points="11,4 19,2 19,12 11,11" stroke="#e94560" fill="rgba(233,69,96,.15)" stroke-width="1"/></svg>Caméra</div>
+    </div>
+
+    <h3>Raccourcis</h3>
+    <div class="pg" style="font-size:11px;line-height:1.9;color:#aac4e8">
+      <b style="color:white">S</b> Sélection &nbsp;<b style="color:white">W</b> Mur<br>
+      <b style="color:white">R</b> Pièce &nbsp;&nbsp;&nbsp;&nbsp;<b style="color:white">P</b> Porte<br>
+      <b style="color:white">D</b> Double P &nbsp;<b style="color:white">F</b> Fenêtre<br>
+      <b style="color:white">C</b> Caméra &nbsp;&nbsp;<b style="color:white">T</b> Texte<br>
+      <b style="color:white">Ctrl+Z</b> Annuler &nbsp;<b style="color:white">Del</b> Suppr.
+    </div>
+  </div>
+</div>
+<div id="sbar">
+  <span id="stool">Outil: Mur</span>
+  <span id="spos">X:0 Y:0</span>
+  <span id="szoom">Zoom: 100%</span>
+  <span id="scount">0 éléments</span>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const cx = cv.getContext('2d');
+let W, H;
+
+const G = { sz: 20, snap: true, camFov: 70, snapRadius: 7 };
+// snapRadius = distance en unités monde pour déclencher le magnétisme
+// → à zoom=1 : 12px écran | à zoom=0.5 : 6px | à zoom=2 : 24px
+
+// Curseur croix noire bien visible sur fond blanc
+const CURSOR_CROSS = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='23' stroke='%23000' stroke-width='2'/%3E%3Cline x1='1' y1='12' x2='23' y2='12' stroke='%23000' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%23000'/%3E%3C/svg%3E\") 12 12, crosshair";
+
+let walls=[], doors=[], wins=[], cams=[], lbls=[], rooms=[];
+let history = [];
+let SEL = null;
+let tool = 'wall';
+let uid = 1;
+const nid = () => uid++;
+
+// Interaction
+let panX=120, panY=200, zoom=1;
+let panning=false, panSX=0, panSY=0, panOX=0, panOY=0;
+let wallPts=[];
+let roomSt=null;
+let camSt=null;
+let moving=false, moveSX=0, moveSY=0;
+// Drag absolu : position souris − position élément au démarrage du drag
+// → le snap se calcule depuis la souris courante, pas en accumulant des deltas
+let dragOffset={x:0,y:0}; // souris_départ − référence_élément
+let rawDragX=0, rawDragY=0; // souris brute courante pendant le drag
+let mx=0, my=0;
+let wallAngleSnap=null; // {x,y,angle,label} — snap angulaire actif pendant tracé mur
+let hoverPreview=null; // {wall, wx, wy, type}
+
+// ── Coords ───────────────────────────────────────────────
+const s2w=(sx,sy)=>({x:(sx-panX)/zoom,y:(sy-panY)/zoom});
+const w2s=(wx,wy)=>({x:wx*zoom+panX,y:wy*zoom+panY});
+// Snap GRAND carreau — seuil en unités MONDE (pas en pixels écran)
+// → moins de déplacement écran autorisé quand on est dézoomé (comportement naturel)
+function snp(v){
+  if(!G.snap) return v;
+  const bs=G.sz*5;
+  const nearest=Math.round(v/bs)*bs;
+  return Math.abs(v-nearest)<G.snapRadius ? nearest : v;
+}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// Magnétisme par proximité — seuils en unités MONDE fixes
+// En dézoomant, chaque unité monde = moins de pixels écran → snap plus difficile à déclencher
+let snapIndicator=null;
+let snapIndicatorType=null; // 'corner' | 'wall' | 'grid'
+function snapToCorner(wx,wy){
+  const R=G.snapRadius;
+
+  // 1. Coin de mur existant (priorité max, seuil légèrement plus grand)
+  const epT=R*1.4;
+  for(const w of walls){
+    if(Math.hypot(wx-w.x1,wy-w.y1)<epT){snapIndicatorType='corner';return{x:w.x1,y:w.y1,snapped:true};}
+    if(Math.hypot(wx-w.x2,wy-w.y2)<epT){snapIndicatorType='corner';return{x:w.x2,y:w.y2,snapped:true};}
+  }
+
+  // 2. Sur le corps d'un mur existant (projection perpendiculaire)
+  let bestD=R, bestPx=null, bestPy=null;
+  for(const w of walls){
+    const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;
+    if(len2<1) continue;
+    const t=Math.max(0,Math.min(1,((wx-w.x1)*dx+(wy-w.y1)*dy)/len2));
+    const px=w.x1+t*dx, py=w.y1+t*dy;
+    const d=Math.hypot(wx-px,wy-py);
+    if(d<bestD){bestD=d;bestPx=px;bestPy=py;}
+  }
+  if(bestPx!==null){snapIndicatorType='wall';return{x:bestPx,y:bestPy,snapped:true};}
+
+  // 3. Coin de grand carreau
+  if(G.snap){
+    const bs=G.sz*5;
+    const gx=Math.round(wx/bs)*bs, gy=Math.round(wy/bs)*bs;
+    if(Math.abs(wx-gx)<R&&Math.abs(wy-gy)<R){
+      snapIndicatorType='grid';return{x:gx,y:gy,snapped:true};
+    }
+  }
+
+  // 4. Position libre
+  snapIndicatorType=null;
+  return{x:wx,y:wy,snapped:false};
+}
+
+// ── Snap angulaire lors du tracé de murs ─────────────────
+// Angles guides : 0°/90°/180° globaux + alignement/perpendicularité
+// avec les murs reliés au point de départ
+function angleSnapWall(fromX,fromY,toX,toY){
+  const dx=toX-fromX, dy=toY-fromY;
+  const dist=Math.hypot(dx,dy);
+  if(dist<2) return null;
+  const angle=Math.atan2(dy,dx);
+
+  // Angles candidats : horizontaux/verticaux toujours disponibles
+  const cands=[
+    {a:0,       lbl:'0°'},
+    {a:Math.PI/2, lbl:'90°'},
+    {a:Math.PI,   lbl:'180°'},
+    {a:-Math.PI/2,lbl:'270°'},
+  ];
+
+  // Ajouter l'alignement et la perpendicularité des murs connectés au point départ
+  for(const w of walls){
+    const atP1=Math.abs(w.x1-fromX)<1&&Math.abs(w.y1-fromY)<1;
+    const atP2=Math.abs(w.x2-fromX)<1&&Math.abs(w.y2-fromY)<1;
+    if(!atP1&&!atP2) continue;
+    const wa=atP1?Math.atan2(w.y2-w.y1,w.x2-w.x1):Math.atan2(w.y1-w.y2,w.x1-w.x2);
+    cands.push({a:wa,      lbl:'→ ext.'});   // extension (180°)
+    cands.push({a:wa+Math.PI, lbl:'← ext.'});
+    cands.push({a:wa+Math.PI/2, lbl:'90°'});  // perpendiculaire
+    cands.push({a:wa-Math.PI/2, lbl:'90°'});
+  }
+
+  const THRESH=10*Math.PI/180; // 10° de tolérance
+  let best=null, bestDiff=THRESH;
+  for(const c of cands){
+    let d=angle-c.a;
+    while(d>Math.PI)d-=2*Math.PI; while(d<=-Math.PI)d+=2*Math.PI;
+    if(Math.abs(d)<bestDiff){bestDiff=Math.abs(d);best=c;}
+  }
+  if(!best) return null;
+  return{
+    x:fromX+Math.cos(best.a)*dist,
+    y:fromY+Math.sin(best.a)*dist,
+    angle:best.a, label:best.lbl
+  };
+}
+
+function mpos(e){
+  const r=cv.getBoundingClientRect();
+  const sx=e.clientX-r.left, sy=e.clientY-r.top;
+  const w=s2w(sx,sy);
+  const sc=snapToCorner(w.x,w.y);
+  snapIndicator=sc.snapped?{x:sc.x,y:sc.y}:null;
+  return {sx,sy,wx:sc.x,wy:sc.y,rwx:w.x,rwy:w.y};
+}
+
+// ── Resize ───────────────────────────────────────────────
+function resize(){
+  const wrap=document.getElementById('cvwrap');
+  W=cv.width=wrap.clientWidth; H=cv.height=wrap.clientHeight; render();
+}
+window.addEventListener('resize',resize);
+
+// ── Render ───────────────────────────────────────────────
+function render(){
+  cx.clearRect(0,0,W,H);
+  // Zone hors feuille (grise) — zone de dessin (blanche)
+  cx.fillStyle='#c8ccd4'; cx.fillRect(0,0,W,H);
+  const ps=w2s(0,0), pe=w2s(3000,2200);
+  cx.fillStyle='#ffffff'; cx.fillRect(ps.x,ps.y,pe.x-ps.x,pe.y-ps.y);
+  cx.strokeStyle='#bbb'; cx.lineWidth=1; cx.strokeRect(ps.x,ps.y,pe.x-ps.x,pe.y-ps.y);
+
+  drawGrid();
+  walls.forEach(w=>drawWall(w));
+  wins.forEach(w=>drawWin(w));
+  doors.forEach(d=>drawDoor(d));
+  cams.forEach(c=>drawCam(c));
+  lbls.forEach(l=>drawLbl(l));
+
+  // Coins de mur (petits ronds aux jonctions)
+  drawCornerDots();
+
+  // Wall hover highlight (for door/window tools)
+  if(hoverPreview) drawPreview(hoverPreview);
+
+  // In-progress drawing
+  if(tool==='wall'&&wallPts.length>0){
+    // Guide angulaire (ligne infinie dans la direction snappée)
+    if(wallAngleSnap){
+      const last=wallPts[wallPts.length-1];
+      const ls=w2s(last.x,last.y);
+      const cos=Math.cos(wallAngleSnap.angle),sin=Math.sin(wallAngleSnap.angle);
+      const far=5000;
+      const g1=w2s(last.x+cos*far,last.y+sin*far);
+      const g2=w2s(last.x-cos*far,last.y-sin*far);
+      cx.save();cx.strokeStyle='rgba(255,165,0,.35)';cx.lineWidth=1;
+      cx.setLineDash([8,5]);cx.beginPath();cx.moveTo(g1.x,g1.y);cx.lineTo(g2.x,g2.y);cx.stroke();
+      cx.setLineDash([]);
+      // Étiquette angle
+      const mp=w2s(last.x+cos*60,last.y+sin*60);
+      cx.font=`bold ${11*zoom}px sans-serif`;cx.fillStyle='#ff9500';
+      cx.textAlign='center';cx.textBaseline='middle';
+      cx.fillText(wallAngleSnap.label,mp.x,mp.y-10);
+      cx.restore();
+    }
+    for(let i=1;i<wallPts.length;i++){
+      const a=w2s(wallPts[i-1].x,wallPts[i-1].y),b=w2s(wallPts[i].x,wallPts[i].y);
+      cx.strokeStyle='#3a9fff';cx.lineWidth=7*zoom;cx.lineCap='square';
+      cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();
+    }
+    const last=wallPts[wallPts.length-1];
+    const a=w2s(last.x,last.y),b=w2s(mx,my);
+    cx.strokeStyle=wallAngleSnap?'#ff9500':'#3a9fff';
+    cx.lineWidth=6*zoom;cx.lineCap='square';
+    cx.setLineDash([6,4]);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();
+    cx.setLineDash([]);
+  }
+  if(tool==='room'&&roomSt){
+    const a=w2s(roomSt.x,roomSt.y),b=w2s(snp(mx),snp(my));
+    const rx=Math.min(a.x,b.x),ry=Math.min(a.y,b.y),rw=Math.abs(b.x-a.x),rh=Math.abs(b.y-a.y);
+    // Preview rect with thick walls
+    cx.fillStyle='rgba(58,159,255,.06)';cx.fillRect(rx,ry,rw,rh);
+    cx.strokeStyle='#3a9fff';cx.lineWidth=8*zoom;cx.lineCap='square';cx.setLineDash([]);
+    cx.strokeRect(rx,ry,rw,rh);
+    // Corner dot on first point
+    cx.fillStyle='#3a9fff';cx.beginPath();cx.arc(a.x,a.y,5,0,2*Math.PI);cx.fill();
+  }
+  if(tool==='camera'&&camSt){
+    const sc=w2s(camSt.x,camSt.y);
+    const ang=Math.atan2(my-camSt.y,mx-camSt.x);
+    drawCamAt(sc.x,sc.y,ang,G.camFov,null,true);
+  }
+
+  // Indicateur snap — couleur selon le type
+  if(snapIndicator){
+    const sp=w2s(snapIndicator.x,snapIndicator.y);
+    // corner=vert, wall=orange, grid=bleu
+    const col=snapIndicatorType==='corner'?'#00cc66':snapIndicatorType==='wall'?'#ff9900':'#3a9fff';
+    cx.strokeStyle=col;cx.lineWidth=2;
+    cx.beginPath();cx.arc(sp.x,sp.y,8,0,2*Math.PI);cx.stroke();
+    cx.fillStyle=col.replace(')',',0.2)').replace('rgb','rgba').replace('#','rgba(').replace('rgba(','rgba(');
+    // version simplifiée : fill semi-transparent
+    cx.globalAlpha=0.22;cx.fillStyle=col;cx.fill();cx.globalAlpha=1;
+    // croix centrale pour le snap sur mur
+    if(snapIndicatorType==='wall'){
+      cx.strokeStyle=col;cx.lineWidth=1.5;
+      cx.beginPath();cx.moveTo(sp.x-5,sp.y);cx.lineTo(sp.x+5,sp.y);
+      cx.moveTo(sp.x,sp.y-5);cx.lineTo(sp.x,sp.y+5);cx.stroke();
+    }
+  }
+
+  drawScaleBar(); drawTitleBlock();
+  updateStatus();
+}
+
+// Petits ronds aux coins de murs (jonctions visibles)
+function drawCornerDots(){
+  // Compter combien de fois chaque coin est utilisé
+  const pts=new Map();
+  for(const w of walls){
+    const k1=`${w.x1},${w.y1}`,k2=`${w.x2},${w.y2}`;
+    pts.set(k1,(pts.get(k1)||0)+1);
+    pts.set(k2,(pts.get(k2)||0)+1);
+  }
+  pts.forEach((cnt,key)=>{
+    const [wx,wy]=key.split(',').map(Number);
+    const sp=w2s(wx,wy);
+    const isSel=SEL&&SEL.t==='corner'&&Math.abs(SEL.x-wx)<0.5&&Math.abs(SEL.y-wy)<0.5;
+    if(isSel){
+      // coin sélectionné : gros rond bleu
+      cx.fillStyle='#3a9fff';cx.strokeStyle='white';cx.lineWidth=2;
+      cx.beginPath();cx.arc(sp.x,sp.y,7,0,2*Math.PI);cx.fill();cx.stroke();
+    } else if(cnt>1){
+      // jonction : petit rond gris (plusieurs murs se rejoignent)
+      cx.fillStyle='rgba(60,60,60,.55)';
+      cx.beginPath();cx.arc(sp.x,sp.y,3.5*zoom,0,2*Math.PI);cx.fill();
+    } else {
+      // extrémité libre : petit carré discret
+      const sz=3*zoom;
+      cx.fillStyle='rgba(80,80,80,.35)';
+      cx.fillRect(sp.x-sz/2,sp.y-sz/2,sz,sz);
+    }
+  });
+}
+
+function drawGrid(){
+  const gs=G.sz, bs=gs*5, tl=s2w(0,0), br=s2w(W,H);
+  // Petits carreaux
+  const sx=Math.floor(tl.x/gs)*gs, sy=Math.floor(tl.y/gs)*gs;
+  cx.strokeStyle='rgba(150,170,205,.25)';cx.lineWidth=.6;cx.beginPath();
+  for(let x=sx;x<=br.x;x+=gs){const p=w2s(x,0);cx.moveTo(p.x,0);cx.lineTo(p.x,H);}
+  for(let y=sy;y<=br.y;y+=gs){const p=w2s(0,y);cx.moveTo(0,p.y);cx.lineTo(W,p.y);}
+  cx.stroke();
+  // Grands carreaux (position monde FIXE)
+  const sx5=Math.floor(tl.x/bs)*bs, sy5=Math.floor(tl.y/bs)*bs;
+  cx.strokeStyle='rgba(120,145,185,.4)';cx.lineWidth=1;cx.beginPath();
+  for(let x=sx5;x<=br.x;x+=bs){const p=w2s(x,0);cx.moveTo(p.x,0);cx.lineTo(p.x,H);}
+  for(let y=sy5;y<=br.y;y+=bs){const p=w2s(0,y);cx.moveTo(0,p.y);cx.lineTo(W,p.y);}
+  cx.stroke();
+}
+
+// ── Remplissage beige des pièces + étiquette m² ──────────
+function drawRoomFills(){
+  const scale=G.sz*5; // world units par mètre (100 = 1 m)
+  rooms.forEach(r=>{
+    const s=w2s(r.x1,r.y1),e=w2s(r.x2,r.y2);
+    const rw=e.x-s.x, rh=e.y-s.y;
+    if(rw<2||rh<2) return;
+    // Fond beige
+    cx.fillStyle='#faf4e2';
+    cx.fillRect(s.x,s.y,rw,rh);
+    // Étiquette surface
+    const area=(r.x2-r.x1)*(r.y2-r.y1)/(scale*scale);
+    if(area>=0.05 && rw>30*zoom && rh>14*zoom){
+      cx.save();
+      cx.font=`${Math.max(9,11*zoom)}px sans-serif`;
+      cx.fillStyle='#9a8f7a';
+      cx.textAlign='center';cx.textBaseline='middle';
+      cx.fillText(area.toFixed(2)+' m²',(s.x+e.x)/2,(s.y+e.y)/2);
+      cx.restore();
+    }
+  });
+}
+
+const WALL_COL='#7d8898';   // gris architectural
+const WALL_W=14;            // épaisseur en unités monde (~14 cm)
+function drawWall(w,alpha){
+  const s=w2s(w.x1,w.y1),e=w2s(w.x2,w.y2);
+  const sel=SEL&&SEL.id===w.id;
+  if(alpha!==undefined) cx.globalAlpha=alpha;
+  cx.strokeStyle=sel?'#3a9fff':WALL_COL;
+  cx.lineWidth=WALL_W*zoom;cx.lineCap='square';
+  cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();
+  if(alpha!==undefined) cx.globalAlpha=1;
+  if(sel){[s,e].forEach(p=>{cx.fillStyle='#3a9fff';cx.beginPath();cx.arc(p.x,p.y,5,0,2*Math.PI);cx.fill();});}
+}
+
+function drawDoor(d,isPreview){
+  const s=w2s(d.x1,d.y1),e=w2s(d.x2,d.y2);
+  const dx=e.x-s.x,dy=e.y-s.y,len=Math.hypot(dx,dy);
+  if(len<1)return;
+  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux,op=d.opens||1;
+  const sel=SEL&&SEL.id===d.id;
+
+  if(!isPreview){
+    // Effacer le mur (fond beige)
+    cx.save();cx.strokeStyle='#ffffff';cx.lineWidth=(WALL_W+2)*zoom;cx.lineCap='butt';
+    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();cx.restore();
+  }
+
+  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':WALL_COL);
+  cx.lineWidth=1.8*zoom;cx.setLineDash([]);
+  const half=len/2;
+
+  if(d.dt==='double'){
+    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(s.x+nx*half*op,s.y+ny*half*op);cx.stroke();
+    cx.beginPath();cx.moveTo(e.x,e.y);cx.lineTo(e.x+nx*half*op,e.y+ny*half*op);cx.stroke();
+    cx.setLineDash([4*zoom,3*zoom]);
+    const ca=Math.atan2(uy,ux),oa=Math.atan2(ny*op,nx*op);
+    cx.beginPath();cx.arc(s.x,s.y,half,ca,oa,arcDir(ca,oa));cx.stroke();
+    const ca2=Math.atan2(-uy,-ux);
+    cx.beginPath();cx.arc(e.x,e.y,half,ca2,oa,arcDir(ca2,oa));cx.stroke();
+    cx.setLineDash([]);
+  } else {
+    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(s.x+nx*len*op,s.y+ny*len*op);cx.stroke();
+    cx.setLineDash([4*zoom,3*zoom]);
+    const ca=Math.atan2(uy,ux),oa=Math.atan2(ny*op,nx*op);
+    cx.beginPath();cx.arc(s.x,s.y,len,ca,oa,arcDir(ca,oa));cx.stroke();
+    cx.setLineDash([]);
+  }
+  if(sel&&!isPreview){cx.fillStyle='rgba(58,159,255,.3)';cx.beginPath();cx.arc(s.x,s.y,5,0,2*Math.PI);cx.fill();}
+}
+
+function arcDir(from,to){
+  let d=to-from;
+  while(d>Math.PI)d-=2*Math.PI;
+  while(d<=-Math.PI)d+=2*Math.PI;
+  return d<0;
+}
+
+function drawWin(w,isPreview){
+  const s=w2s(w.x1,w.y1),e=w2s(w.x2,w.y2);
+  const dx=e.x-s.x,dy=e.y-s.y,len=Math.hypot(dx,dy);
+  if(len<1)return;
+  const nx=(-dy/len),ny=(dx/len),th=7*zoom;
+  const sel=SEL&&SEL.id===w.id;
+
+  if(!isPreview){
+    cx.save();cx.strokeStyle='#ffffff';cx.lineWidth=(WALL_W+2)*zoom;cx.lineCap='butt';
+    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();cx.restore();
+  }
+
+  cx.fillStyle=isPreview?'rgba(58,159,255,.35)':(sel?'rgba(58,159,255,.4)':'rgba(200,215,235,.55)');
+  cx.beginPath();
+  cx.moveTo(s.x+nx*th,s.y+ny*th);cx.lineTo(e.x+nx*th,e.y+ny*th);
+  cx.lineTo(e.x-nx*th,e.y-ny*th);cx.lineTo(s.x-nx*th,s.y-ny*th);
+  cx.closePath();cx.fill();
+  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':WALL_COL);cx.lineWidth=1.5*zoom;
+  for(const t of[-.5,0,.5]){
+    const off=t*th*.9;
+    cx.beginPath();cx.moveTo(s.x+nx*off,s.y+ny*off);cx.lineTo(e.x+nx*off,e.y+ny*off);cx.stroke();
+  }
+}
+
+function drawCam(c){
+  const sc=w2s(c.x,c.y);
+  drawCamAt(sc.x,sc.y,c.angle,c.fov,c.num,SEL&&SEL.id===c.id);
+}
+function drawCamAt(scx,scy,angle,fov,num,sel){
+  const fovR=(fov||70)*Math.PI/180,rng=200*zoom;
+  cx.fillStyle=sel?'rgba(233,69,96,.3)':'rgba(233,69,96,.15)';
+  cx.strokeStyle=sel?'#e94560':'rgba(233,69,96,.7)';cx.lineWidth=1*zoom;
+  cx.beginPath();cx.moveTo(scx,scy);cx.arc(scx,scy,rng,angle-fovR/2,angle+fovR/2);cx.closePath();cx.fill();cx.stroke();
+  const bw=13*zoom,bh=9*zoom;
+  cx.save();cx.translate(scx,scy);cx.rotate(angle);
+  cx.fillStyle=sel?'#e94560':'#c0392b';cx.strokeStyle='#800';cx.lineWidth=1*zoom;
+  cx.fillRect(-bw/2,-bh/2,bw,bh);cx.strokeRect(-bw/2,-bh/2,bw,bh);
+  cx.fillStyle='#1a1a2e';cx.beginPath();cx.arc(bw/4,0,bh/3,0,2*Math.PI);cx.fill();
+  cx.restore();
+  if(num){cx.font=`bold ${10*zoom}px sans-serif`;cx.textAlign='center';cx.fillStyle='#e94560';cx.fillText('CAM'+num,scx,scy+bh/2+14*zoom);}
+}
+
+function drawLbl(l){
+  const sc=w2s(l.x,l.y),sel=SEL&&SEL.id===l.id;
+  cx.font=`${(l.sz||14)*zoom}px sans-serif`;cx.fillStyle=sel?'#3a9fff':'#222';
+  cx.textAlign='center';cx.textBaseline='middle';cx.fillText(l.text,sc.x,sc.y);
+  if(sel){const tw=cx.measureText(l.text).width;cx.strokeStyle='#3a9fff';cx.lineWidth=1;cx.setLineDash([3,3]);cx.strokeRect(sc.x-tw/2-4,sc.y-(l.sz||14)*zoom/2-3,tw+8,(l.sz||14)*zoom+6);cx.setLineDash([]);}
+}
+
+// ── Preview for door/window tools ─────────────────────────
+function drawPreview(prev){
+  const nw=prev.wall;
+  // Highlight wall
+  const s=w2s(nw.x1,nw.y1),e=w2s(nw.x2,nw.y2);
+  cx.save();cx.globalAlpha=0.35;cx.strokeStyle='#3a9fff';cx.lineWidth=12*zoom;cx.lineCap='square';
+  cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();cx.restore();
+
+  const pr=projOnWall(prev.wx,prev.wy,nw);
+  const hw=prev.type==='door'?2*G.sz:3*G.sz;
+  const el={
+    t:prev.type==='window'?'win':'door',
+    dt:prev.type==='door2'?'double':'single',
+    x1:pr.x-pr.ux*hw, y1:pr.y-pr.uy*hw,
+    x2:pr.x+pr.ux*hw, y2:pr.y+pr.uy*hw,
+    opens:1
+  };
+  cx.save();cx.globalAlpha=0.65;
+  if(el.t==='win') drawWin(el,true);
+  else drawDoor(el,true);
+  cx.restore();
+}
+
+function drawScaleBar(){
+  const barPx=5*G.sz*zoom,x=16,y=H-16;
+  cx.strokeStyle='#333';cx.lineWidth=2;cx.fillStyle='#333';
+  cx.beginPath();cx.moveTo(x,y);cx.lineTo(x+barPx,y);cx.moveTo(x,y-5);cx.lineTo(x,y+5);cx.moveTo(x+barPx,y-5);cx.lineTo(x+barPx,y+5);cx.stroke();
+  cx.font='11px sans-serif';cx.textAlign='center';cx.textBaseline='bottom';cx.fillText('1 m',x+barPx/2,y-7);
+}
+function drawTitleBlock(){
+  const ps=w2s(0,0),pe=w2s(3000,2200);
+  if(pe.y-ps.y<60)return;
+  cx.fillStyle='#222';cx.font=`bold ${12*zoom}px sans-serif`;
+  cx.textAlign='center';cx.textBaseline='bottom';
+  const mid=(ps.x+pe.x)/2;
+  cx.fillText("PLAN DE DÉTAIL — Système de vidéoprotection",mid,ps.y-18*zoom);
+  cx.font=`${10*zoom}px sans-serif`;cx.fillStyle='#555';
+  cx.fillText("SECUTECH — 10 rue de l'Anjou, 97490 Sainte-Clotilde",mid,ps.y-6*zoom);
+}
+function updateStatus(){
+  const tot=walls.length+doors.length+wins.length+cams.length+lbls.length;
+  document.getElementById('scount').textContent=`${tot} éléments · ${cams.length} caméra(s)`;
+  document.getElementById('szoom').textContent=`Zoom: ${Math.round(zoom*100)}%`;
+}
+
+// ── Events ───────────────────────────────────────────────
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+cv.addEventListener('mousedown',e=>{
+  if(e.button===2){panning=true;panSX=e.clientX;panSY=e.clientY;panOX=panX;panOY=panY;cv.style.cursor='grabbing';return;}
+  const p=mpos(e);
+
+  // ── SÉLECTION : uniquement en mode "select" ──
+  if(tool==='select'){
+    const hit=hitTest(p.rwx,p.rwy);
+    if(hit){
+      saveHistory();
+      SEL=hit;
+      moving=true;moveSX=p.rwx;moveSY=p.rwy;
+      rawDragX=p.rwx;rawDragY=p.rwy;
+      // Offset : souris_départ − position de référence de l'élément
+      if(hit.t==='wall')       dragOffset={x:p.rwx-hit.x1, y:p.rwy-hit.y1};
+      else if(hit.t==='corner')dragOffset={x:p.rwx-hit.x,  y:p.rwy-hit.y};
+      else                     dragOffset={x:p.rwx-(hit.x||hit.x1||0), y:p.rwy-(hit.y||hit.y1||0)};
+      updatePropPanel();render();
+    } else {
+      SEL=null;updatePropPanel();render();
+    }
+    return;
+  }
+
+  if(tool==='wall'){
+    // Si snap angulaire actif, utiliser la position contrainte
+    if(wallAngleSnap&&wallPts.length>0)
+      wallPts.push({x:wallAngleSnap.x,y:wallAngleSnap.y});
+    else
+      wallPts.push({x:p.wx,y:p.wy});
+  }
+  else if(tool==='room'){
+    // Coordonnées toujours dans la feuille (>=0)
+    const cx2=Math.max(0,p.wx), cy2=Math.max(0,p.wy);
+    if(!roomSt){
+      // Premier clic : coin de départ (seulement sur la feuille)
+      if(p.rwx>=0&&p.rwy>=0){ roomSt={x:cx2,y:cy2}; render(); }
+    } else {
+      // Deuxième clic : créer la pièce
+      saveHistory();
+      const dx=Math.abs(cx2-roomSt.x),dy=Math.abs(cy2-roomSt.y);
+      if(dx>G.sz&&dy>G.sz) addRoom(roomSt.x,roomSt.y,cx2,cy2);
+      roomSt=null; render();
+    }
+  }
+  else if(tool==='door'||tool==='door2'){
+    saveHistory();
+    const nw=nearWall(p.rwx,p.rwy,30/zoom);
+    if(nw) placeDoor(nw,p.rwx,p.rwy,tool==='door2'?'double':'single');
+    SEL=null;render();
+  }
+  else if(tool==='window'){
+    saveHistory();
+    const nw=nearWall(p.rwx,p.rwy,30/zoom);
+    if(nw) placeWin(nw,p.rwx,p.rwy);
+    SEL=null;render();
+  }
+  else if(tool==='camera'){
+    if(!camSt){camSt={x:p.wx,y:p.wy};render();}
+    else{
+      saveHistory();
+      const dx=p.rwx-camSt.x,dy=p.rwy-camSt.y;
+      cams.push({id:nid(),t:'cam',x:camSt.x,y:camSt.y,angle:Math.atan2(dy,dx),fov:G.camFov,num:cams.length+1});
+      camSt=null;SEL=null;render();
+    }
+  }
+  else if(tool==='label'){
+    saveHistory();
+    const txt=prompt('Texte :','Bureau');
+    if(txt){lbls.push({id:nid(),t:'lbl',x:p.wx,y:p.wy,text:txt,sz:14});SEL=null;render();}
+  }
+});
+
+
+cv.addEventListener('mousemove',e=>{
+  if(panning){panX=panOX+(e.clientX-panSX);panY=panOY+(e.clientY-panSY);render();return;}
+  const p=mpos(e);
+  mx=p.wx;my=p.wy; // position grille/magnétisme par défaut
+  // Snap angulaire pendant le tracé d'un mur
+  if(tool==='wall'&&wallPts.length>0){
+    const last=wallPts[wallPts.length-1];
+    const as=angleSnapWall(last.x,last.y,p.wx,p.wy);
+    if(as){mx=as.x;my=as.y;wallAngleSnap=as;}
+    else wallAngleSnap=null;
+  } else {
+    wallAngleSnap=null;
+  }
+  document.getElementById('spos').textContent=`X:${Math.round(p.rwx/G.sz*20)}cm Y:${Math.round(p.rwy/G.sz*20)}cm`;
+
+  // Preview for door/window tools
+  if(tool==='door'||tool==='door2'||tool==='window'){
+    const nw=nearWall(p.rwx,p.rwy,30/zoom);
+    hoverPreview=nw?{wall:nw,wx:p.rwx,wy:p.rwy,type:tool}:null;
+  } else {
+    hoverPreview=null;
+  }
+
+  // Move selected element
+  if(moving&&SEL){
+    rawDragX=p.rwx; rawDragY=p.rwy; // souris brute → utilisée dans moveEl pour snap absolu
+    const dx=p.rwx-moveSX,dy=p.rwy-moveSY;
+    moveEl(SEL,dx,dy);
+    moveSX=p.rwx;moveSY=p.rwy;
+  }
+  render();
+});
+
+cv.addEventListener('mouseup',e=>{
+  if(panning){panning=false;cv.style.cursor=tool==='select'?'default':CURSOR_CROSS;return;}
+  if(moving){moving=false;}
+});
+
+// Finalize wall segment on each click (when 2+ pts)
+cv.addEventListener('click',e=>{
+  if(e.button!==0)return;
+  if(tool==='wall'&&wallPts.length>=2){
+    saveHistory();
+    const a=wallPts[wallPts.length-2],b=wallPts[wallPts.length-1];
+    walls.push({id:nid(),t:'wall',x1:a.x,y1:a.y,x2:b.x,y2:b.y});
+    splitWallsAtJunctions();
+    deduplicateWalls();
+    wallPts=[b];render();
+  }
+});
+
+cv.addEventListener('dblclick',e=>{
+  if(tool==='wall'&&wallPts.length>0){wallPts=[];render();}
+  if(SEL){
+    if(SEL.t==='lbl'){const t=prompt('Texte :',SEL.text);if(t!==null){SEL.text=t;render();}}
+    if(SEL.t==='cam'){const f=prompt('Angle de vue (°):',SEL.fov||70);if(f!==null){SEL.fov=+f;render();}}
+    if(SEL.t==='door'){SEL.opens*=-1;render();} // double-click = flip door direction
+  }
+});
+
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const sx=e.clientX-r.left,sy=e.clientY-r.top;
+  const f=e.deltaY<0?1.12:.89;
+  panX=sx-(sx-panX)*f;panY=sy-(sy-panY)*f;
+  zoom=Math.min(Math.max(zoom*f,.08),8);
+  render();
+},{passive:false});
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  const k=e.key.toLowerCase();
+  if(k==='s')setTool('select');
+  else if(k==='w')setTool('wall');
+  else if(k==='r')setTool('room');
+  else if(k==='p')setTool('door');
+  else if(k==='d')setTool('door2');
+  else if(k==='f')setTool('window');
+  else if(k==='c')setTool('camera');
+  else if(k==='t')setTool('label');
+  else if(k==='escape'){wallPts=[];roomSt=null;camSt=null;hoverPreview=null;SEL=null;updatePropPanel();render();}
+  else if((k==='delete'||k==='backspace')&&!e.target.value){e.preventDefault();deleteSelected();}
+  else if(k==='z'&&e.ctrlKey){e.preventDefault();undo();}
+  else if(k==='enter'&&tool==='wall'&&wallPts.length>0){wallPts=[];render();}
+});
+
+// ── Element operations ────────────────────────────────────
+function addRoom(x1,y1,x2,y2){
+  const lx=Math.min(x1,x2),rx=Math.max(x1,x2),ty=Math.min(y1,y2),by=Math.max(y1,y2);
+  rooms.push({id:nid(),t:'room',x1:lx,y1:ty,x2:rx,y2:by}); // remplissage beige
+  walls.push({id:nid(),t:'wall',x1:lx,y1:ty,x2:rx,y2:ty});
+  walls.push({id:nid(),t:'wall',x1:rx,y1:ty,x2:rx,y2:by});
+  walls.push({id:nid(),t:'wall',x1:rx,y1:by,x2:lx,y2:by});
+  walls.push({id:nid(),t:'wall',x1:lx,y1:by,x2:lx,y2:ty});
+  splitWallsAtJunctions();
+  deduplicateWalls();
+}
+
+function nearWall(wx,wy,maxD){
+  let best=null,bd=maxD;
+  walls.forEach(w=>{const d=d2seg(wx,wy,w.x1,w.y1,w.x2,w.y2);if(d<bd){bd=d;best=w;}});
+  return best;
+}
+function d2seg(px,py,x1,y1,x2,y2){
+  const dx=x2-x1,dy=y2-y1,l2=dx*dx+dy*dy;
+  if(!l2)return Math.hypot(px-x1,py-y1);
+  const t=Math.max(0,Math.min(1,((px-x1)*dx+(py-y1)*dy)/l2));
+  return Math.hypot(px-x1-t*dx,py-y1-t*dy);
+}
+function projOnWall(wx,wy,w){
+  const dx=w.x2-w.x1,dy=w.y2-w.y1,len=Math.hypot(dx,dy);
+  if(!len)return{x:w.x1,y:w.y1,t:0,ux:1,uy:0,len};
+  const t=((wx-w.x1)*dx+(wy-w.y1)*dy)/(len*len);
+  const tc=Math.max(.1,Math.min(.9,t));
+  return{x:w.x1+tc*dx,y:w.y1+tc*dy,t:tc,ux:dx/len,uy:dy/len,len};
+}
+
+function placeDoor(w,wx,wy,dt){
+  const pr=projOnWall(wx,wy,w),hw=dt==='double'?3*G.sz:2*G.sz;
+  doors.push({id:nid(),t:'door',dt,x1:pr.x-pr.ux*hw,y1:pr.y-pr.uy*hw,x2:pr.x+pr.ux*hw,y2:pr.y+pr.uy*hw,opens:1});
+}
+function freeDoor(x,y,dt){
+  const hw=dt==='double'?3*G.sz:2*G.sz;
+  doors.push({id:nid(),t:'door',dt,x1:x-hw,y1:y,x2:x+hw,y2:y,opens:1});
+}
+function placeWin(w,wx,wy){
+  const pr=projOnWall(wx,wy,w),hw=3*G.sz;
+  wins.push({id:nid(),t:'win',x1:pr.x-pr.ux*hw,y1:pr.y-pr.uy*hw,x2:pr.x+pr.ux*hw,y2:pr.y+pr.uy*hw});
+}
+function freeWin(x,y){wins.push({id:nid(),t:'win',x1:x-3*G.sz,y1:y,x2:x+3*G.sz,y2:y});}
+
+// ── Hit test ─────────────────────────────────────────────
+function hitTest(wx,wy){
+  // Priorité 1 : coins de murs (pour pouvoir les déplacer)
+  const cornerT=10/zoom;
+  for(const w of walls){
+    if(Math.hypot(wx-w.x1,wy-w.y1)<cornerT) return makeCorner(w.x1,w.y1);
+    if(Math.hypot(wx-w.x2,wy-w.y2)<cornerT) return makeCorner(w.x2,w.y2);
+  }
+  for(const c of[...cams].reverse())if(Math.hypot(wx-c.x,wy-c.y)<15/zoom)return c;
+  for(const l of[...lbls].reverse())if(Math.hypot(wx-l.x,wy-l.y)<20/zoom)return l;
+  for(const d of[...doors].reverse())if(Math.hypot(wx-(d.x1+d.x2)/2,wy-(d.y1+d.y2)/2)<20/zoom)return d;
+  for(const w of[...wins].reverse())if(Math.hypot(wx-(w.x1+w.x2)/2,wy-(w.y1+w.y2)/2)<20/zoom)return w;
+  for(const w of[...walls].reverse())if(d2seg(wx,wy,w.x1,w.y1,w.x2,w.y2)<8/zoom)return w;
+  return null;
+}
+
+// Crée un objet "coin" dynamique (trouve tous les murs connectés à ce point)
+function makeCorner(x,y){
+  return {t:'corner',x,y,id:`c_${x}_${y}`};
+}
+
+// ── Move element ─────────────────────────────────────────
+// Snap ABSOLU : la cible est (rawDragX/Y - dragOffset) depuis la position souris courante,
+// jamais depuis la position accumulée → plus de "collage" sur la grille.
+function moveEl(el,dx,dy){
+  if(el.t==='corner'){
+    const ox=el.x,oy=el.y;
+    // Cible absolue depuis la souris (+ snap sur grille/coins si proche)
+    const nx=snp(rawDragX-dragOffset.x), ny=snp(rawDragY-dragOffset.y);
+    if(nx===ox&&ny===oy) return;
+    walls.forEach(w=>{
+      if(Math.abs(w.x1-ox)<0.5&&Math.abs(w.y1-oy)<0.5){w.x1=nx;w.y1=ny;}
+      if(Math.abs(w.x2-ox)<0.5&&Math.abs(w.y2-oy)<0.5){w.x2=nx;w.y2=ny;}
+    });
+    el.x=nx;el.y=ny;el.id=`c_${nx}_${ny}`;
+    return;
+  }
+  if(el.t==='cam'||el.t==='lbl'){
+    // Suivi exact de la souris (pas de snap sur grille pour cam/lbl)
+    el.x=rawDragX-dragOffset.x;
+    el.y=rawDragY-dragOffset.y;
+    return;
+  }
+  if(el.t==='door'||el.t==='win'){
+    const ncx=(el.x1+el.x2)/2+dx,ncy=(el.y1+el.y2)/2+dy;
+    const hw=Math.hypot(el.x2-el.x1,el.y2-el.y1)/2;
+    const nw=nearWall(ncx,ncy,80/zoom);
+    if(nw){
+      const pr=projOnWall(ncx,ncy,nw);
+      el.x1=pr.x-pr.ux*hw;el.y1=pr.y-pr.uy*hw;
+      el.x2=pr.x+pr.ux*hw;el.y2=pr.y+pr.uy*hw;
+    } else {
+      el.x1+=dx;el.y1+=dy;el.x2+=dx;el.y2+=dy;
+    }
+    return;
+  }
+  // Mur : perpendiculaire + groupe colinéaire + étirement + portes/fenêtres
+  if(el.t==='wall'){
+    const wdx=el.x2-el.x1, wdy=el.y2-el.y1;
+    const len=Math.hypot(wdx,wdy);
+    if(len<1) return;
+
+    let mdx=0, mdy=0;
+    if(Math.abs(wdy)<0.5){          // horizontal → Y absolu depuis souris
+      mdy=snp(rawDragY-dragOffset.y)-el.y1;
+    } else if(Math.abs(wdx)<0.5){   // vertical → X absolu depuis souris
+      mdx=snp(rawDragX-dragOffset.x)-el.x1;
+    } else {
+      const wnx=-wdy/len, wny=wdx/len, proj=dx*wnx+dy*wny;
+      mdx=proj*wnx; mdy=proj*wny;
+    }
+    if(!mdx&&!mdy) return;
+
+    // Groupe : mur sélectionné + tous les murs colinéaires connectés
+    const group=findCollinearGroup(el);
+    const groupIds=new Set(group.map(w=>w.id));
+
+    // Positions anciennes pour vérifier portes/fenêtres
+    const oldPos=group.map(w=>({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2}));
+
+    // Endpoints anciens (dédupliqués) pour étirer les murs perpendiculaires
+    const ptSet=new Set(), oldPts=[];
+    group.forEach(w=>{
+      [`${Math.round(w.x1)},${Math.round(w.y1)}`,`${Math.round(w.x2)},${Math.round(w.y2)}`]
+        .forEach((k,i)=>{if(!ptSet.has(k)){ptSet.add(k);oldPts.push(i===0?{x:w.x1,y:w.y1}:{x:w.x2,y:w.y2});}});
+    });
+
+    // Déplacer tout le groupe
+    group.forEach(w=>{w.x1+=mdx;w.y1+=mdy;w.x2+=mdx;w.y2+=mdy;});
+
+    // Étirer les murs perpendiculaires reliés
+    walls.forEach(w=>{
+      if(groupIds.has(w.id)) return;
+      oldPts.forEach(p=>{
+        if(Math.abs(w.x1-p.x)<0.5&&Math.abs(w.y1-p.y)<0.5){w.x1+=mdx;w.y1+=mdy;}
+        if(Math.abs(w.x2-p.x)<0.5&&Math.abs(w.y2-p.y)<0.5){w.x2+=mdx;w.y2+=mdy;}
+      });
+    });
+
+    // Portes/fenêtres sur les murs du groupe
+    [...doors,...wins].forEach(dw=>{
+      const dcx=(dw.x1+dw.x2)/2, dcy=(dw.y1+dw.y2)/2;
+      for(const o of oldPos){
+        if(d2seg(dcx,dcy,o.x1,o.y1,o.x2,o.y2)<8){
+          dw.x1+=mdx;dw.y1+=mdy;dw.x2+=mdx;dw.y2+=mdy;break;
+        }
+      }
+    });
+    return;
+  }
+}
+
+// ── Groupe colinéaire : murs de même orientation sur la même droite ──
+// Quand on déplace un mur horizontal, tous les murs horizontaux
+// sur la même ligne Y qui lui sont accrochés bougent ensemble.
+function findCollinearGroup(wall){
+  const isH=Math.abs(wall.y2-wall.y1)<0.5;
+  const isV=Math.abs(wall.x2-wall.x1)<0.5;
+  if(!isH&&!isV) return [wall]; // diagonal → groupe de 1
+  const group=[wall];
+  const seen=new Set([wall.id]);
+  let changed=true;
+  while(changed){
+    changed=false;
+    for(const w of walls){
+      if(seen.has(w.id)) continue;
+      const wH=Math.abs(w.y2-w.y1)<0.5, wV=Math.abs(w.x2-w.x1)<0.5;
+      if(isH!==wH||isV!==wV) continue;          // orientation différente
+      if(isH&&Math.abs(w.y1-wall.y1)>0.5) continue; // ligne Y différente
+      if(isV&&Math.abs(w.x1-wall.x1)>0.5) continue; // ligne X différente
+      // partage-t-il un bout avec un mur du groupe ?
+      for(const g of group){
+        if((Math.abs(w.x1-g.x1)<0.5&&Math.abs(w.y1-g.y1)<0.5)||
+           (Math.abs(w.x1-g.x2)<0.5&&Math.abs(w.y1-g.y2)<0.5)||
+           (Math.abs(w.x2-g.x1)<0.5&&Math.abs(w.y2-g.y1)<0.5)||
+           (Math.abs(w.x2-g.x2)<0.5&&Math.abs(w.y2-g.y2)<0.5)){
+          group.push(w);seen.add(w.id);changed=true;break;
+        }
+      }
+    }
+  }
+  return group;
+}
+
+// ── Découpe les murs aux jonctions en T ──────────────────
+// Ex : pièce B créée à côté de pièce A → le coin de B qui tombe
+// AU MILIEU d'un mur de A découpe ce mur en deux segments indépendants.
+function splitWallsAtJunctions(){
+  let changed=true;
+  let guard=0;
+  while(changed&&guard++<200){
+    changed=false;
+    outer:
+    for(let i=0;i<walls.length;i++){
+      const w=walls[i];
+      const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;
+      if(len2<1) continue;
+      for(let j=0;j<walls.length;j++){
+        if(i===j) continue;
+        const o=walls[j];
+        for(const [px,py] of [[o.x1,o.y1],[o.x2,o.y2]]){
+          // Paramètre de projection du point sur le segment
+          const t=((px-w.x1)*dx+(py-w.y1)*dy)/len2;
+          if(t<=0.01||t>=0.99) continue; // pas en milieu de segment
+          const qx=w.x1+t*dx,qy=w.y1+t*dy;
+          if(Math.abs(qx-px)<0.6&&Math.abs(qy-py)<0.6){
+            // Le point (px,py) est SUR le mur i → on le coupe en deux
+            const a={id:nid(),t:'wall',x1:w.x1,y1:w.y1,x2:px,y2:py};
+            const b={id:nid(),t:'wall',x1:px,y1:py,x2:w.x2,y2:w.y2};
+            walls.splice(i,1,a,b);
+            changed=true;
+            continue outer;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ── Déduplique les murs superposés ───────────────────────
+function deduplicateWalls(){
+  const rem=new Set();
+  for(let i=0;i<walls.length;i++){
+    if(rem.has(i))continue;
+    const a=walls[i];
+    for(let j=i+1;j<walls.length;j++){
+      if(rem.has(j))continue;
+      const b=walls[j];
+      const fwd=Math.abs(a.x1-b.x1)<1&&Math.abs(a.y1-b.y1)<1&&Math.abs(a.x2-b.x2)<1&&Math.abs(a.y2-b.y2)<1;
+      const bwd=Math.abs(a.x1-b.x2)<1&&Math.abs(a.y1-b.y2)<1&&Math.abs(a.x2-b.x1)<1&&Math.abs(a.y2-b.y1)<1;
+      if(fwd||bwd) rem.add(j);
+    }
+  }
+  if(rem.size>0) walls=walls.filter((_,i)=>!rem.has(i));
+}
+
+// ── Tools ────────────────────────────────────────────────
+function setTool(t){
+  tool=t;wallPts=[];roomSt=null;camSt=null;hoverPreview=null;
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('btn-'+t);if(btn)btn.classList.add('active');
+  const names={select:'Sélection',wall:'Mur (clic-clic, Entrée=fin)',room:'Pièce (clic coin 1 → clic coin 2)',
+    door:'Porte P (clic sur mur)',door2:'Double porte DP (clic sur mur)',
+    window:'Fenêtre F (clic sur mur)',camera:'Caméra (2 clics: position+direction)',label:'Étiquette texte'};
+  document.getElementById('ptool').textContent=names[t]||t;
+  document.getElementById('stool').textContent='Outil: '+(names[t]||t);
+  cv.style.cursor=t==='select'?'default':CURSOR_CROSS;
+  render();
+}
+
+function deleteSelected(){
+  if(!SEL)return;
+  saveHistory();
+  if(SEL.t==='corner'){
+    // Supprimer tous les murs connectés à ce coin
+    const {x,y}=SEL;
+    walls=walls.filter(w=>!(
+      (Math.abs(w.x1-x)<0.5&&Math.abs(w.y1-y)<0.5)||
+      (Math.abs(w.x2-x)<0.5&&Math.abs(w.y2-y)<0.5)
+    ));
+    SEL=null;updatePropPanel();render();return;
+  }
+  const id=SEL.id;
+  walls=walls.filter(w=>w.id!==id);doors=doors.filter(d=>d.id!==id);
+  wins=wins.filter(w=>w.id!==id);cams=cams.filter(c=>c.id!==id);lbls=lbls.filter(l=>l.id!==id);
+  SEL=null;updatePropPanel();render();
+}
+function clearAll(){
+  if(!confirm('Effacer tout le plan ?'))return;
+  walls=[];doors=[];wins=[];cams=[];lbls=[];rooms=[];SEL=null;wallPts=[];render();
+}
+
+// ── Properties panel ─────────────────────────────────────
+function updatePropPanel(){
+  const p=document.getElementById('ppanel');
+  if(!SEL){p.innerHTML='<div class="pl">Cliquez un élément</div>';return;}
+  const e=SEL;
+  const tname={wall:'MUR',door:'PORTE',win:'FENÊTRE',cam:'CAMÉRA',lbl:'TEXTE',corner:'COIN DE MUR'};
+  let h=`<div style="font-weight:600;color:white;margin-bottom:6px">${tname[e.t]||e.t}</div>`;
+  if(e.t==='corner'){
+    // Compter les murs connectés
+    const cnt=walls.filter(w=>(Math.abs(w.x1-e.x)<0.5&&Math.abs(w.y1-e.y)<0.5)||(Math.abs(w.x2-e.x)<0.5&&Math.abs(w.y2-e.y)<0.5)).length;
+    h+=`<div class="pl" style="line-height:1.8">${cnt} mur(s) connecté(s)<br>
+      <span style="color:#7eb3ff">Glisser</span> pour bouger le coin<br>
+      <span style="color:#7eb3ff">Suppr.</span> enlève les murs</div>`;
+  }
+  if(e.t==='door'){
+    h+=`<div class="pl">Sens d'ouverture</div>
+    <button class="pi" style="cursor:pointer;padding:4px" onclick="SEL.opens*=-1;render()">↕ Inverser</button>
+    <div class="pl" style="margin-top:4px;color:#8ab">Dbl-clic sur la porte = inverser</div>`;
+  }
+  if(e.t==='cam'){
+    h+=`<div class="pl">Angle vue: <span id="cfovl">${e.fov||70}°</span></div>
+    <input type="range" class="pi" min="20" max="360" value="${e.fov||70}" style="padding:0"
+      oninput="SEL.fov=+this.value;document.getElementById('cfovl').textContent=this.value+'°';render()">
+    <div class="pl" style="margin-top:6px">Rotation</div>
+    <input type="range" class="pi" min="-314" max="314" value="${Math.round((e.angle||0)*100)}" style="padding:0"
+      oninput="SEL.angle=+this.value/100;render()">`;
+  }
+  if(e.t==='lbl'){
+    h+=`<div class="pl">Texte</div>
+    <input class="pi" value="${e.text}" oninput="SEL.text=this.value;render()">
+    <div class="pl" style="margin-top:4px">Taille</div>
+    <input type="range" class="pi" min="8" max="40" value="${e.sz||14}" style="padding:0"
+      oninput="SEL.sz=+this.value;render()">`;
+  }
+  h+=`<button class="pi" style="margin-top:8px;background:#e94560;cursor:pointer" onclick="deleteSelected()">🗑 Supprimer</button>`;
+  p.innerHTML=h;
+}
+
+// ── History ──────────────────────────────────────────────
+function saveHistory(){
+  if(history.length>30)history.shift();
+  history.push(JSON.stringify({walls,doors,wins,cams,lbls,rooms}));
+}
+function undo(){
+  if(!history.length)return;
+  const s=JSON.parse(history.pop());
+  walls=s.walls;doors=s.doors;wins=s.wins;cams=s.cams;lbls=s.lbls;rooms=s.rooms||[];
+  SEL=null;updatePropPanel();render();
+}
+
+// ── Export ───────────────────────────────────────────────
+function exportPNG(){
+  const old=SEL;SEL=null;render();
+  const a=document.createElement('a');a.download='plan_videoprotection.png';a.href=cv.toDataURL('image/png');a.click();
+  SEL=old;render();
+}
+function exportPDF(){window.print();}
+
+// ── Init ─────────────────────────────────────────────────
+resize();
+setTool('wall');
+</script>
+<style>
+@media print{
+  #header,#toolbar,#sidebar,#sbar{display:none!important}
+  #main{display:block}#cvwrap{width:100vw;height:100vh}canvas{width:100%!important;height:100%!important}
+}
+</style>
+</body>
+</html>
