@@ -12,7 +12,7 @@ body{font-family:'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:
 .hbtn{background:#0f3460;color:white;border:1px solid #3a6090;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;white-space:nowrap}
 .hbtn:hover{background:#e94560;border-color:#e94560}
 #main{display:flex;flex:1;overflow:hidden}
-#toolbar{width:62px;background:#16213e;border-right:1px solid #0f3460;padding:6px 4px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+#toolbar{width:62px;background:#16213e;border-right:1px solid #0f3460;padding:6px 4px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden}
 .tbtn{width:54px;height:54px;border-radius:8px;border:2px solid transparent;background:#0f3460;color:white;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;gap:2px;transition:all .15s}
 .tbtn svg{width:22px;height:22px;pointer-events:none}
 .tbtn:hover{background:#1a4080;border-color:#5a9fff}
@@ -36,6 +36,9 @@ canvas{display:block}
   <div id="hbtns">
     <button class="hbtn" onclick="undo()">↩ Annuler</button>
     <button class="hbtn" onclick="clearAll()">🗑 Effacer</button>
+    <button class="hbtn" onclick="saveProject()" style="background:#1a6030;border-color:#2a9050">💾 Sauvegarder</button>
+    <button class="hbtn" onclick="document.getElementById('loadfile').click()" style="background:#0f3460;border-color:#2a6090">📂 Ouvrir</button>
+    <input type="file" id="loadfile" accept=".planvideosurveillance" style="display:none" onchange="loadProject(this)">
     <button class="hbtn" onclick="exportPNG()">🖼 PNG</button>
     <button class="hbtn" onclick="exportPDF()">📄 PDF</button>
   </div>
@@ -92,22 +95,6 @@ canvas{display:block}
 
     <h3>Propriétés</h3>
     <div class="pg" id="ppanel"><div class="pl">Cliquez un élément</div></div>
-
-    <h3>Grille</h3>
-    <div class="pg">
-      <div class="pl">Taille (1 case = 20 cm)</div>
-      <select class="pi" onchange="G.sz=+this.value;render()">
-        <option value="20" selected>20 px</option>
-        <option value="30">30 px</option>
-        <option value="40">40 px</option>
-      </select>
-      <label style="display:flex;align-items:center;gap:5px;margin-top:6px;font-size:11px;cursor:pointer">
-        <input type="checkbox" id="snapcb" checked onchange="G.snap=this.checked"> Aimant grille
-      </label>
-      <div class="pl" style="margin-top:6px">Force du magnétisme : <span id="snrlbl">7</span></div>
-      <input type="range" class="pi" min="4" max="40" value="7" style="padding:0"
-        oninput="G.snapRadius=+this.value;document.getElementById('snrlbl').textContent=this.value">
-    </div>
 
     <h3>Caméra</h3>
     <div class="pg">
@@ -257,7 +244,7 @@ function angleSnapWall(fromX,fromY,toX,toY){
     cands.push({a:wa-Math.PI/2, lbl:'90°'});
   }
 
-  const THRESH=10*Math.PI/180; // 10° de tolérance
+  const THRESH=5*Math.PI/180; // 5° de tolérance
   let best=null, bestDiff=THRESH;
   for(const c of cands){
     let d=angle-c.a;
@@ -1091,20 +1078,167 @@ function undo(){
 
 // ── Export ───────────────────────────────────────────────
 function exportPNG(){
-  const old=SEL;SEL=null;render();
-  const a=document.createElement('a');a.download='plan_videoprotection.png';a.href=cv.toDataURL('image/png');a.click();
-  SEL=old;render();
+  // Calculer le rectangle englobant tous les éléments (en coordonnées monde)
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  const exp=(x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
+  walls.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
+  doors.forEach(d=>{exp(d.x1,d.y1);exp(d.x2,d.y2);});
+  wins.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
+  cams.forEach(c=>{exp(c.x-200,c.y-200);exp(c.x+200,c.y+200);}); // inclure le cône
+  lbls.forEach(l=>{exp(l.x,l.y);});
+  rooms.forEach(r=>{exp(r.x1,r.y1);exp(r.x2,r.y2);});
+
+  // Rien à exporter → vue courante
+  if(minX===Infinity){
+    const old=SEL;SEL=null;render();
+    const a=document.createElement('a');a.download='plan_videoprotection.png';a.href=cv.toDataURL('image/png');a.click();
+    SEL=old;render();return;
+  }
+
+  // Marge autour du contenu
+  const pad=G.sz*5*2; // 2 grands carreaux
+  minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
+  const bw=maxX-minX, bh=maxY-minY;
+
+  // Résolution d'export : max 3000px sur le grand côté, min zoom=1
+  const expZoom=Math.min(3000/Math.max(bw,bh), 3);
+  const expW=Math.round(bw*expZoom);
+  const expH=Math.round(bh*expZoom);
+
+  // Sauvegarder l'état courant
+  const sW=W,sH=H,sPX=panX,sPY=panY,sZ=zoom,sSEL=SEL;
+  SEL=null;
+
+  // Appliquer l'état export
+  W=expW; H=expH; zoom=expZoom;
+  panX=-minX*expZoom; panY=-minY*expZoom;
+  cv.width=expW; cv.height=expH;
+
+  render();
+
+  const a=document.createElement('a');
+  a.download='plan_videoprotection.png';
+  a.href=cv.toDataURL('image/png');
+  a.click();
+
+  // Restaurer l'état
+  W=sW; H=sH; panX=sPX; panY=sPY; zoom=sZ; SEL=sSEL;
+  cv.width=sW; cv.height=sH;
+  render();
 }
-function exportPDF(){window.print();}
+function exportPDF(){
+  // Même calcul de rectangle englobant que PNG
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  const exp=(x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
+  walls.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
+  doors.forEach(d=>{exp(d.x1,d.y1);exp(d.x2,d.y2);});
+  wins.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
+  cams.forEach(c=>{exp(c.x-200,c.y-200);exp(c.x+200,c.y+200);});
+  lbls.forEach(l=>{exp(l.x,l.y);});
+  rooms.forEach(r=>{exp(r.x1,r.y1);exp(r.x2,r.y2);});
+
+  if(minX===Infinity){window.print();return;}
+
+  const pad=G.sz*5*2;
+  minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
+  const bw=maxX-minX, bh=maxY-minY;
+
+  // A4 paysage 150dpi : 1754×1240 — portrait : 1240×1754
+  const landscape=bw>=bh;
+  const pgW=landscape?1754:1240, pgH=landscape?1240:1754;
+  const pdfZoom=Math.min(pgW/bw, pgH/bh)*0.95;
+  const pdfW=Math.round(bw*pdfZoom), pdfH=Math.round(bh*pdfZoom);
+
+  // Sauvegarder l'état courant
+  const sW=W,sH=H,sPX=panX,sPY=panY,sZ=zoom,sSEL=SEL;
+  SEL=null;
+
+  // Appliquer l'état PDF
+  W=pdfW; H=pdfH; zoom=pdfZoom;
+  panX=-minX*pdfZoom; panY=-minY*pdfZoom;
+  cv.width=pdfW; cv.height=pdfH;
+  render();
+
+  // Restaurer après impression
+  window.onafterprint=function(){
+    W=sW;H=sH;panX=sPX;panY=sPY;zoom=sZ;SEL=sSEL;
+    cv.width=sW;cv.height=sH;
+    window.onafterprint=null;
+    render();
+  };
+  window.print();
+}
+
+// ── Sauvegarde / Chargement projet ───────────────────────
+async function saveProject(){
+  const data={version:1,walls,doors,wins,cams,lbls,rooms,panX,panY,zoom,uid};
+  const json=JSON.stringify(data,null,2);
+  if(window.showSaveFilePicker){
+    try{
+      const handle=await window.showSaveFilePicker({
+        suggestedName:'plan_videoprotection.planvideosurveillance'
+      });
+      const writable=await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+    }catch(err){
+      if(err.name!=='AbortError') alert('Erreur sauvegarde : '+err.message);
+    }
+  } else {
+    // Fallback Firefox/Safari
+    const blob=new Blob([json],{type:'application/json'});
+    const a=document.createElement('a');
+    a.download='plan_videoprotection.planvideosurveillance';
+    a.href=URL.createObjectURL(blob);a.click();
+    URL.revokeObjectURL(a.href);
+  }
+}
+
+function loadProject(input){
+  const file=input.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!data.walls) throw new Error('Fichier invalide');
+      walls=data.walls||[];
+      doors=data.doors||[];
+      wins=data.wins||[];
+      cams=data.cams||[];
+      lbls=data.lbls||[];
+      rooms=data.rooms||[];
+      panX=data.panX??120;
+      panY=data.panY??200;
+      zoom=data.zoom??1;
+      uid=data.uid??uid;
+      SEL=null;
+      history=[];
+      updatePropPanel();
+      render();
+    }catch(err){
+      alert('Impossible de lire le fichier : '+err.message);
+    }
+    input.value=''; // reset pour pouvoir recharger le même fichier
+  };
+  reader.readAsText(file);
+}
 
 // ── Init ─────────────────────────────────────────────────
 resize();
+// Centrer la feuille entière (3000×2200) dans la vue au démarrage
+zoom=Math.min(W/3000,H/2200)*0.88;
+panX=(W-3000*zoom)/2;
+panY=(H-2200*zoom)/2;
 setTool('wall');
+render();
 </script>
 <style>
 @media print{
   #header,#toolbar,#sidebar,#sbar{display:none!important}
-  #main{display:block}#cvwrap{width:100vw;height:100vh}canvas{width:100%!important;height:100%!important}
+  #main{display:block}
+  #cvwrap{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:white}
+  canvas{max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important;}
 }
 </style>
 </body>
