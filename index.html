@@ -11,7 +11,7 @@ body{font-family:'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:
 #hbtns{margin-left:auto;display:flex;gap:6px}
 .hbtn{background:#0f3460;color:white;border:1px solid #3a6090;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:12px;white-space:nowrap}
 .hbtn:hover{background:#e94560;border-color:#e94560}
-#main{display:flex;flex:1;overflow:hidden}
+#main{display:flex;flex:1;overflow:hidden;position:relative}
 #toolbar{width:62px;background:#16213e;border-right:1px solid #0f3460;padding:6px 4px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden}
 .tbtn{width:54px;height:54px;border-radius:8px;border:2px solid transparent;background:#0f3460;color:white;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;gap:2px;transition:all .15s}
 .tbtn svg{width:22px;height:22px;pointer-events:none}
@@ -28,6 +28,10 @@ canvas{display:block}
 .pi:focus{outline:none;border-color:#7eb3ff}
 #sbar{background:#0d2040;color:#aac4e8;padding:3px 10px;font-size:11px;display:flex;gap:16px}
 .leg{display:flex;align-items:center;gap:5px;font-size:11px;margin:2px 0}
+.fbtn{background:#0f3460;border:2px solid transparent;border-radius:6px;color:white;cursor:pointer;font-size:11px;padding:7px 5px;text-align:center;transition:all .15s;width:100%}
+.fbtn:hover{background:#1a4080;border-color:#5a9fff}
+.fbtn.fsel{background:#c8a86b;border-color:#e0c080;color:#1a1a2e}
+.fbtn svg{display:block;margin:0 auto 3px;width:28px;height:22px}
 </style>
 </head>
 <body>
@@ -69,13 +73,30 @@ canvas{display:block}
     <button class="tbtn" id="btn-camera" onclick="setTool('camera')" title="Caméra (C)">
       <svg viewBox="0 0 24 24" stroke="#e94560" stroke-width="2" fill="none"><rect x="2" y="7" width="13" height="10" rx="2" fill="rgba(233,69,96,.2)"/><polygon points="15,10 22,7 22,17 15,14" fill="rgba(233,69,96,.2)"/></svg>Caméra
     </button>
+    <button class="tbtn" id="btn-bspline" onclick="setTool('bspline')" title="Courbe B-Spline (B)">
+      <svg viewBox="0 0 24 24" stroke="#3a9fff" stroke-width="2.2" fill="none"><path d="M3 17 C7 17 7 7 12 7 S17 17 21 7" stroke-linecap="round"/></svg>Courbe
+    </button>
     <button class="tbtn" id="btn-label" onclick="setTool('label')" title="Étiquette (T)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 6h16M4 12h10M4 18h6"/></svg>Texte
     </button>
     <div class="tsep"></div>
-    <button class="tbtn" onclick="deleteSelected()" title="Supprimer (Del)" style="border-color:#5a0020">
-      <svg viewBox="0 0 24 24" stroke="#e94560" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Suppr.
+    <button class="tbtn" id="btn-furn" onclick="toggleFurnPanel()" title="Meubles (M)">
+      <svg viewBox="0 0 24 24" stroke="#c8a86b" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="8" rx="2" fill="rgba(200,168,107,.15)"/><line x1="5" y1="11" x2="5" y2="7"/><line x1="19" y1="11" x2="19" y2="7"/><line x1="5" y1="7" x2="19" y2="7"/></svg>Meubles
     </button>
+    <div class="tsep"></div>
+    <button class="tbtn" id="btn-bgimg" onclick="document.getElementById('bginput').click()" title="Charger image de fond">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="18" height="15" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><polyline points="21 15 16 10 5 21"/></svg>Calque
+    </button>
+    <input type="file" id="bginput" accept="image/*" style="display:none" onchange="loadBgImage(this)">
+    <button class="tbtn" id="btn-calibrate" onclick="setTool('calibrate')" title="Calibrer l'échelle (2 points)">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="9" x2="2" y2="15"/><line x1="22" y1="9" x2="22" y2="15"/><line x1="12" y1="10" x2="12" y2="14"/></svg>Échelle
+    </button>
+  </div>
+
+  <!-- Panneau sélection meubles -->
+  <div id="furn-panel" style="display:none;position:absolute;left:66px;top:0;z-index:100;background:#16213e;border:1px solid #3a6090;border-radius:0 8px 8px 0;padding:10px 8px;width:220px;box-shadow:4px 4px 12px rgba(0,0,0,.5)">
+    <div style="color:#7eb3ff;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Sélectionner un meuble</div>
+    <div id="furn-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
   </div>
 
   <div id="cvwrap"><canvas id="cv"></canvas></div>
@@ -89,7 +110,7 @@ canvas{display:block}
         <b style="color:white">Clic droit</b> : déplacer vue<br>
         <b style="color:white">Molette</b> : zoom<br>
         <b style="color:white">Échap</b> : annuler dessin<br>
-        <b style="color:white">Entrée / Dbl-clic</b> : fin mur
+        <b style="color:white">Échap / Dbl-clic</b> : annuler
       </div>
     </div>
 
@@ -103,9 +124,29 @@ canvas{display:block}
         oninput="G.camFov=+this.value;document.getElementById('fovlbl').textContent=this.value+'°';if(SEL&&SEL.t==='cam'){SEL.fov=G.camFov}render()">
     </div>
 
+    <h3>Murs</h3>
+    <div class="pg">
+      <div class="pl">Couleur des murs</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <input type="color" id="wallcolorpicker" value="#000000" style="width:36px;height:28px;border:none;background:none;cursor:pointer;padding:0"
+          oninput="wallColor=this.value;document.getElementById('wallcolorlbl').textContent=this.value;render()">
+        <span id="wallcolorlbl" style="font-size:11px;color:#aac4e8">#000000</span>
+        <button class="pi" style="padding:2px 7px;cursor:pointer;font-size:10px"
+          onclick="wallColor='#000000';document.getElementById('wallcolorpicker').value='#000000';document.getElementById('wallcolorlbl').textContent='#000000';render()">Reset</button>
+      </div>
+    </div>
+
+    <h3>Fond de plan</h3>
+    <div class="pg">
+      <div class="pl">Opacité : <span id="bgoplbl">40%</span></div>
+      <input type="range" class="pi" id="bgopslider" min="5" max="100" value="40" style="padding:0"
+        oninput="bgOpacity=+this.value/100;document.getElementById('bgoplbl').textContent=this.value+'%';render()">
+      <div class="pl" style="margin-top:5px;color:#7eb3ff" id="scalelbl">Échelle : non calibrée</div>
+    </div>
+
     <h3>Légende</h3>
     <div class="pg" style="line-height:1.9">
-      <div class="leg"><div style="width:20px;height:4px;background:#111;border-radius:1px"></div>Mur</div>
+      <div class="leg"><div id="legwall" style="width:20px;height:4px;background:#000000;border-radius:1px"></div>Mur</div>
       <div class="leg"><div style="width:20px;height:10px;background:rgba(122,184,212,.5);border:1.5px solid #5a9fc7"></div>Fenêtre</div>
       <div class="leg"><svg width="20" height="14"><line x1="0" y1="12" x2="0" y2="2" stroke="#111" stroke-width="1.5"/><path d="M0 2 A10 10 0 0 1 10 12" stroke="#111" fill="none" stroke-width="1.5" stroke-dasharray="3,2"/></svg>Porte</div>
       <div class="leg"><svg width="20" height="14"><rect x="0" y="3" width="11" height="8" stroke="#e94560" fill="rgba(233,69,96,.2)" stroke-width="1.5"/><polygon points="11,4 19,2 19,12 11,11" stroke="#e94560" fill="rgba(233,69,96,.15)" stroke-width="1"/></svg>Caméra</div>
@@ -117,7 +158,9 @@ canvas{display:block}
       <b style="color:white">R</b> Pièce &nbsp;&nbsp;&nbsp;&nbsp;<b style="color:white">P</b> Porte<br>
       <b style="color:white">D</b> Double P &nbsp;<b style="color:white">F</b> Fenêtre<br>
       <b style="color:white">C</b> Caméra &nbsp;&nbsp;<b style="color:white">T</b> Texte<br>
-      <b style="color:white">Ctrl+Z</b> Annuler &nbsp;<b style="color:white">Del</b> Suppr.
+      <b style="color:white">M</b> Meubles &nbsp;&nbsp;<b style="color:white">R*</b> Tourner meuble<br>
+      <b style="color:white">Ctrl+Z</b> Annuler &nbsp;<b style="color:white">Del</b> Suppr.<br>
+      <b style="color:white">Échap</b> Annuler tracé
     </div>
   </div>
 </div>
@@ -133,7 +176,7 @@ const cv = document.getElementById('cv');
 const cx = cv.getContext('2d');
 let W, H;
 
-const G = { sz: 20, snap: true, camFov: 70, snapRadius: 7 };
+const G = { sz: 20, snap: true, camFov: 90, snapRadius: 7 };
 // snapRadius = distance en unités monde pour déclencher le magnétisme
 // → à zoom=1 : 12px écran | à zoom=0.5 : 6px | à zoom=2 : 24px
 
@@ -154,6 +197,7 @@ let wallPts=[];
 let roomSt=null;
 let camSt=null;
 let moving=false, moveSX=0, moveSY=0;
+let cornerGuides=null; // [{x1,y1,x2,y2,col,active}] guides visuels pendant drag de coin
 // Drag absolu : position souris − position élément au démarrage du drag
 // → le snap se calcule depuis la souris courante, pas en accumulant des deltas
 let dragOffset={x:0,y:0}; // souris_départ − référence_élément
@@ -161,6 +205,41 @@ let rawDragX=0, rawDragY=0; // souris brute courante pendant le drag
 let mx=0, my=0;
 let wallAngleSnap=null; // {x,y,angle,label} — snap angulaire actif pendant tracé mur
 let hoverPreview=null; // {wall, wx, wy, type}
+let resizingDoor=null; // {el, movingEnd:0|1, ux, uy} — drag resize porte/fenêtre
+let resizingCam=null;  // {cam, type:'range'|'fov_l'|'fov_r'} — drag handles caméra
+let camInput='', camInputMode='angle'; // saisie pendant création caméra
+let camLockedFov=null; // null=phase1(angle), valeur=phase2(portée)
+let camSelField=null, camSelInput=''; // édition caméra sélectionnée ('fov'|'range'|null)
+let camLabelBBoxes=[]; // BBoxes [{field,x,y,w,h}] pour hit-test clic labels caméra
+let _camPath=null;     // Path2D pictogramme SVG (lazy init)
+// Couleurs des cônes de caméra (une couleur par caméra)
+const CAM_CONE_COLORS=[
+  ['rgba(233,69,96,.18)','rgba(233,69,96,.7)'],
+  ['rgba(52,152,219,.18)','rgba(52,152,219,.7)'],
+  ['rgba(46,204,113,.18)','rgba(46,204,113,.7)'],
+  ['rgba(155,89,182,.18)','rgba(155,89,182,.7)'],
+  ['rgba(241,196,15,.18)','rgba(241,196,15,.7)'],
+  ['rgba(230,126,34,.18)','rgba(230,126,34,.7)'],
+  ['rgba(26,188,156,.18)','rgba(26,188,156,.7)'],
+  ['rgba(236,72,153,.18)','rgba(236,72,153,.7)'],
+];
+// État courbe de mur et B-Spline
+let resizingWallCurve=null; // mur en cours de courbure par le handle
+let rotatingFurn=null;     // meuble en rotation par drag sur poignée orange
+let resizingFurnHandle=null; // {furn, hi} — hi=index dans les 8 poignées
+let bsplinePts=[];          // points posés pendant l'outil B-Spline
+// Calque de fond
+let bgImage=null, bgOpacity=0.4;
+let bgX=0, bgY=0, bgW=3000, bgH=2200; // position et taille en coordonnées monde
+// Calibration échelle : mm par unité monde (défaut 100u=1m → 10mm/u)
+let worldScale=10, scalePt1=null;
+// Détection automatique des pièces fermées
+let autoRooms=[], autoRoomLabels={}, autoRoomsDirty=true;
+// Saisie directe distance pendant tracé mur
+let wallInput='';
+// Saisie dimensions pièce — 2 phases
+let roomLockedX=null; // null=phase 1 (largeur), valeur=phase 2 (hauteur)
+let roomInput='';     // valeur en cours de saisie pour la phase active
 
 // ── Coords ───────────────────────────────────────────────
 const s2w=(sx,sy)=>({x:(sx-panX)/zoom,y:(sy-panY)/zoom});
@@ -189,15 +268,23 @@ function snapToCorner(wx,wy){
     if(Math.hypot(wx-w.x2,wy-w.y2)<epT){snapIndicatorType='corner';return{x:w.x2,y:w.y2,snapped:true};}
   }
 
-  // 2. Sur le corps d'un mur existant (projection perpendiculaire)
+  // 2. Sur le corps d'un mur existant — suit la courbe pour les murs arrondis
   let bestD=R, bestPx=null, bestPy=null;
   for(const w of walls){
-    const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;
-    if(len2<1) continue;
-    const t=Math.max(0,Math.min(1,((wx-w.x1)*dx+(wy-w.y1)*dy)/len2));
-    const px=w.x1+t*dx, py=w.y1+t*dy;
-    const d=Math.hypot(wx-px,wy-py);
-    if(d<bestD){bestD=d;bestPx=px;bestPy=py;}
+    if(w.cx!==undefined||w.cx1!==undefined){
+      // Mur courbé : projeter sur la courbe bezier réelle
+      const pr=projOnWall(wx,wy,w);
+      const d=Math.hypot(wx-pr.x,wy-pr.y);
+      if(d<bestD){bestD=d;bestPx=pr.x;bestPy=pr.y;}
+    } else {
+      // Mur droit : projection standard sur le segment
+      const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;
+      if(len2<1) continue;
+      const t=Math.max(0,Math.min(1,((wx-w.x1)*dx+(wy-w.y1)*dy)/len2));
+      const px=w.x1+t*dx, py=w.y1+t*dy;
+      const d=Math.hypot(wx-px,wy-py);
+      if(d<bestD){bestD=d;bestPx=px;bestPy=py;}
+    }
   }
   if(bestPx!==null){snapIndicatorType='wall';return{x:bestPx,y:bestPy,snapped:true};}
 
@@ -244,7 +331,7 @@ function angleSnapWall(fromX,fromY,toX,toY){
     cands.push({a:wa-Math.PI/2, lbl:'90°'});
   }
 
-  const THRESH=5*Math.PI/180; // 5° de tolérance
+  const THRESH=2*Math.PI/180; // 2° de tolérance
   let best=null, bestDiff=THRESH;
   for(const c of cands){
     let d=angle-c.a;
@@ -278,18 +365,58 @@ window.addEventListener('resize',resize);
 // ── Render ───────────────────────────────────────────────
 function render(){
   cx.clearRect(0,0,W,H);
-  // Zone hors feuille (grise) — zone de dessin (blanche)
-  cx.fillStyle='#c8ccd4'; cx.fillRect(0,0,W,H);
-  const ps=w2s(0,0), pe=w2s(3000,2200);
-  cx.fillStyle='#ffffff'; cx.fillRect(ps.x,ps.y,pe.x-ps.x,pe.y-ps.y);
-  cx.strokeStyle='#bbb'; cx.lineWidth=1; cx.strokeRect(ps.x,ps.y,pe.x-ps.x,pe.y-ps.y);
+  // Canvas infini — fond blanc
+  cx.fillStyle='#ffffff'; cx.fillRect(0,0,W,H);
 
   drawGrid();
+  drawBgImage();
+  if(autoRoomsDirty){recomputeAutoRooms();autoRoomsDirty=false;}
+  drawAutoRooms();
   walls.forEach(w=>drawWall(w));
+  // Cote + handles porte/fenêtre sélectionnée
+  if(SEL&&(SEL.t==='door'||SEL.t==='win')){
+    const s=w2s(SEL.x1,SEL.y1),e=w2s(SEL.x2,SEL.y2);
+    const len=Math.hypot(SEL.x2-SEL.x1,SEL.y2-SEL.y1);
+    const lbl=wallInput?wallInput+' m':formatDist(len*worldScale);
+    drawDimLine(s.x,s.y,e.x,e.y,lbl,!wallInput);
+    [s,e].forEach(pt=>{
+      cx.fillStyle='#3a9fff';cx.strokeStyle='white';cx.lineWidth=2;
+      cx.beginPath();cx.arc(pt.x,pt.y,6,0,2*Math.PI);cx.fill();cx.stroke();
+    });
+  }
+  // Cote du mur sélectionné
+  if(SEL&&SEL.t==='wall'){
+    const s=w2s(SEL.x1,SEL.y1),e=w2s(SEL.x2,SEL.y2);
+    const lbl=wallInput?wallInput+' m':formatDist(Math.hypot(SEL.x2-SEL.x1,SEL.y2-SEL.y1)*worldScale);
+    drawDimLine(s.x,s.y,e.x,e.y,lbl,!wallInput);
+  }
+  // Handle de courbure du mur sélectionné (diamant orange au milieu)
+  if(SEL&&SEL.t==='wall'&&tool==='select'){
+    let hx,hy;
+    if(SEL.cx!==undefined){
+      const p=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p.x;hy=p.y;
+    } else if(SEL.cx1!==undefined){
+      const t=0.5,mt=0.5;
+      hx=mt*mt*mt*SEL.x1+3*mt*mt*t*SEL.cx1+3*mt*t*t*SEL.cx2+t*t*t*SEL.x2;
+      hy=mt*mt*mt*SEL.y1+3*mt*mt*t*SEL.cy1+3*mt*t*t*SEL.cy2+t*t*t*SEL.y2;
+    } else {hx=(SEL.x1+SEL.x2)/2;hy=(SEL.y1+SEL.y2)/2;}
+    const hs=w2s(hx,hy);
+    cx.fillStyle='#ff9500';cx.strokeStyle='white';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(hs.x,hs.y-8);cx.lineTo(hs.x+8,hs.y);cx.lineTo(hs.x,hs.y+8);cx.lineTo(hs.x-8,hs.y);cx.closePath();cx.fill();cx.stroke();
+  }
+  // Cote live quand on étire un coin
+  if(SEL&&SEL.t==='corner'){
+    walls.filter(w=>(Math.abs(w.x1-SEL.x)<1&&Math.abs(w.y1-SEL.y)<1)||(Math.abs(w.x2-SEL.x)<1&&Math.abs(w.y2-SEL.y)<1))
+      .forEach(w=>{
+        const s=w2s(w.x1,w.y1),e=w2s(w.x2,w.y2);
+        drawDimLine(s.x,s.y,e.x,e.y,formatDist(Math.hypot(w.x2-w.x1,w.y2-w.y1)*worldScale),true);
+      });
+  }
   wins.forEach(w=>drawWin(w));
   doors.forEach(d=>drawDoor(d));
   cams.forEach(c=>drawCam(c));
   lbls.forEach(l=>drawLbl(l));
+  furnitures.forEach(f=>drawFurniture(f));
 
   // Coins de mur (petits ronds aux jonctions)
   drawCornerDots();
@@ -328,25 +455,149 @@ function render(){
     cx.lineWidth=6*zoom;cx.lineCap='square';
     cx.setLineDash([6,4]);cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();
     cx.setLineDash([]);
+    // Ligne de cote pendant le tracé (active=bleu si auto, normal si frappe utilisateur)
+    const distW=Math.hypot(mx-last.x,my-last.y);
+    if(distW>2){
+      const label=wallInput?wallInput+' m':formatDist(distW*worldScale);
+      drawDimLine(a.x,a.y,b.x,b.y,label,!wallInput);
+    }
   }
   if(tool==='room'&&roomSt){
-    const a=w2s(roomSt.x,roomSt.y),b=w2s(snp(mx),snp(my));
+    const {ex,ey,wLabel,hLabel,wActive,hActive}=getRoomPreviewDims();
+    const a=w2s(roomSt.x,roomSt.y),b=w2s(ex,ey);
     const rx=Math.min(a.x,b.x),ry=Math.min(a.y,b.y),rw=Math.abs(b.x-a.x),rh=Math.abs(b.y-a.y);
-    // Preview rect with thick walls
     cx.fillStyle='rgba(58,159,255,.06)';cx.fillRect(rx,ry,rw,rh);
     cx.strokeStyle='#3a9fff';cx.lineWidth=8*zoom;cx.lineCap='square';cx.setLineDash([]);
     cx.strokeRect(rx,ry,rw,rh);
-    // Corner dot on first point
     cx.fillStyle='#3a9fff';cx.beginPath();cx.arc(a.x,a.y,5,0,2*Math.PI);cx.fill();
+    if(rw>5) drawDimLine(rx,ry,rx+rw,ry,wLabel,wActive);
+    if(rh>5) drawDimLine(rx+rw,ry,rx+rw,ry+rh,hLabel,hActive);
+  }
+  // Prévisualisation B-Spline
+  if(tool==='bspline'&&bsplinePts.length>0){
+    const allPts=[...bsplinePts,{x:mx,y:my}];
+    const p0s=w2s(allPts[0].x,allPts[0].y);
+    cx.strokeStyle='#3a9fff';cx.lineWidth=6*zoom;cx.lineCap='round';cx.setLineDash([6,4]);
+    cx.beginPath();cx.moveTo(p0s.x,p0s.y);
+    catmullRomPath(allPts);cx.stroke();cx.setLineDash([]);
+    // Points posés
+    allPts.forEach((p,i)=>{
+      const ps=w2s(p.x,p.y);
+      cx.fillStyle=i<bsplinePts.length?'#3a9fff':'rgba(58,159,255,.45)';
+      cx.strokeStyle='white';cx.lineWidth=2;
+      cx.beginPath();cx.arc(ps.x,ps.y,5,0,2*Math.PI);cx.fill();cx.stroke();
+    });
   }
   if(tool==='camera'&&camSt){
     const sc=w2s(camSt.x,camSt.y);
-    const ang=Math.atan2(my-camSt.y,mx-camSt.x);
-    drawCamAt(sc.x,sc.y,ang,G.camFov,null,true);
+    const usedAngle=Math.atan2(my-camSt.y,mx-camSt.x);
+    const mouseDist=Math.max(50,Math.hypot(mx-camSt.x,my-camSt.y));
+    // Phase 1 = angle, phase 2 = portée
+    const fovPrev=camLockedFov!==null?camLockedFov
+      :(camInput?Math.min(360,Math.max(1,parseFloat(camInput.replace(',','.'))||G.camFov)):G.camFov);
+    const rangePrev=camLockedFov!==null&&camInput?Math.max(50,parseFloat(camInput.replace(',','.'))*100):mouseDist;
+    drawCamAt(sc.x,sc.y,usedAngle,fovPrev,null,true,rangePrev);
+    // En phase 2 : cote de portée
+    if(camLockedFov!==null){
+      const tipS=w2s(camSt.x+Math.cos(usedAngle)*rangePrev,camSt.y+Math.sin(usedAngle)*rangePrev);
+      const rLbl=camInput?camInput+' m':formatDist(rangePrev*worldScale);
+      drawDimLine(sc.x,sc.y,tipS.x,tipS.y,rLbl,!camInput);
+    }
+    // Label actif (style dim-line)
+    cx.save();cx.font='bold 12px sans-serif';
+    const lbl=camLockedFov===null
+      ?'Angle: '+(camInput?camInput+'°':fovPrev.toFixed(0)+'°')
+      :'Portée: '+(camInput?camInput+' m':(rangePrev/100).toFixed(1)+' m');
+    {
+      const lx=sc.x+14,ly=sc.y-30;
+      const tw=cx.measureText(lbl).width,lw=tw+14,lh=22,r=5;
+      const active=!camInput;
+      cx.fillStyle=active?'rgba(232,246,255,.97)':'rgba(255,255,255,.97)';
+      cx.strokeStyle=active?'#29b5f6':'#2a7fd4';cx.lineWidth=active?2:1;
+      cx.beginPath();cx.moveTo(lx+r,ly);cx.lineTo(lx+lw-r,ly);cx.arcTo(lx+lw,ly,lx+lw,ly+r,r);
+      cx.lineTo(lx+lw,ly+lh-r);cx.arcTo(lx+lw,ly+lh,lx+lw-r,ly+lh,r);
+      cx.lineTo(lx+r,ly+lh);cx.arcTo(lx,ly+lh,lx,ly+lh-r,r);
+      cx.lineTo(lx,ly+r);cx.arcTo(lx,ly,lx+r,ly,r);cx.closePath();cx.fill();cx.stroke();
+      cx.fillStyle='#0a3a8c';cx.textAlign='left';cx.textBaseline='middle';
+      cx.fillText(lbl,lx+7,ly+11);
+    }
+    cx.restore();
+  }
+  // Caméra sélectionnée : cote portée (cliquable) + label Angle + handles indépendants
+  if(SEL&&SEL.t==='cam'){
+    const sc=w2s(SEL.x,SEL.y);
+    const liveRange=(camSelField==='range'&&camSelInput)?Math.max(50,parseFloat(camSelInput.replace(',','.'))*100):(SEL.range||800);
+    let liveFovL=getCamFovL(SEL),liveFovR=getCamFovR(SEL);
+    if(camSelField==='fov'&&camSelInput){const v=Math.min(360,Math.max(2,parseFloat(camSelInput.replace(',','.'))||1));liveFovL=liveFovR=v/2;}
+    const range=liveRange;
+    const tipW={x:SEL.x+Math.cos(SEL.angle)*range,y:SEL.y+Math.sin(SEL.angle)*range};
+    const tipS=w2s(tipW.x,tipW.y);
+
+    // ── Cote portée (dim line) — le label LUI-MÊME est cliquable pour éditer la portée ──
+    const rangeLblTxt=camSelField==='range'&&camSelInput?camSelInput+' m':formatDist(range*worldScale);
+    drawDimLine(sc.x,sc.y,tipS.x,tipS.y,rangeLblTxt,camSelField!=='range');
+    // Stocker bbox du label de la dim line pour le hit-test
+    camLabelBBoxes=[];
+    {
+      const ddx=tipS.x-sc.x,ddy2=tipS.y-sc.y,dlen=Math.hypot(ddx,ddy2);
+      if(dlen>=8){
+        cx.font='bold 12px sans-serif';
+        const ux=ddx/dlen,uy=ddy2/dlen,nx2=uy,ny2=-ux,off=28;
+        const mx2=(sc.x+nx2*off+tipS.x+nx2*off)/2,my2=(sc.y+ny2*off+tipS.y+ny2*off)/2;
+        const tw=cx.measureText(rangeLblTxt).width;
+        camLabelBBoxes.push({field:'range',x:mx2-tw/2-7,y:my2-11,w:tw+14,h:22});
+      }
+    }
+
+    // ── Label "Angle" (seul, au-dessus de la caméra) ──
+    cx.save();cx.font='bold 12px sans-serif';
+    const totalFov=liveFovL+liveFovR;
+    const fovTxt='Angle: '+(camSelField==='fov'&&camSelInput?camSelInput+'°':totalFov.toFixed(0)+'°');
+    {
+      const lx=sc.x+14,ly=sc.y-28;
+      const tw=cx.measureText(fovTxt).width,lw=tw+14,lh=22,r=5;
+      const active=camSelField==='fov';
+      cx.fillStyle=active?'rgba(232,246,255,.97)':'rgba(255,255,255,.97)';
+      cx.strokeStyle=active?'#29b5f6':'#2a7fd4';cx.lineWidth=active?2:1;
+      cx.beginPath();cx.moveTo(lx+r,ly);cx.lineTo(lx+lw-r,ly);cx.arcTo(lx+lw,ly,lx+lw,ly+r,r);
+      cx.lineTo(lx+lw,ly+lh-r);cx.arcTo(lx+lw,ly+lh,lx+lw-r,ly+lh,r);
+      cx.lineTo(lx+r,ly+lh);cx.arcTo(lx,ly+lh,lx,ly+lh-r,r);
+      cx.lineTo(lx,ly+r);cx.arcTo(lx,ly,lx+r,ly,r);cx.closePath();cx.fill();cx.stroke();
+      cx.fillStyle='#0a3a8c';cx.textAlign='left';cx.textBaseline='middle';
+      cx.fillText(fovTxt,lx+7,ly+11);
+      camLabelBBoxes.push({field:'fov',x:lx,y:ly,w:lw,h:lh});
+    }
+    cx.restore();
+
+    // ── Handles : pointe = ROTATION+PORTÉE (rouge), bords gauche/droite = FOV indépendants (orange) ──
+    const fovLAngle=SEL.angle-liveFovL*Math.PI/180;
+    const fovRAngle=SEL.angle+liveFovR*Math.PI/180;
+    const handlePts=[
+      {x:tipW.x,y:tipW.y,col:'#e94560',type:'range'},
+      {x:SEL.x+Math.cos(fovLAngle)*range*0.82,y:SEL.y+Math.sin(fovLAngle)*range*0.82,col:'#ff9500',type:'fov_l'},
+      {x:SEL.x+Math.cos(fovRAngle)*range*0.82,y:SEL.y+Math.sin(fovRAngle)*range*0.82,col:'#ff9500',type:'fov_r'},
+    ];
+    handlePts.forEach(h=>{
+      const hs=w2s(h.x,h.y);
+      cx.fillStyle=h.col;cx.strokeStyle='white';cx.lineWidth=2;
+      cx.beginPath();cx.arc(hs.x,hs.y,7,0,2*Math.PI);cx.fill();cx.stroke();
+    });
   }
 
-  // Indicateur snap — couleur selon le type
-  if(snapIndicator){
+  // ── Guides de coin (alignement / perpendiculaire) ──
+  if(cornerGuides&&cornerGuides.length){
+    cx.save();
+    cornerGuides.forEach(g=>{
+      const p1=w2s(g.x1,g.y1),p2=w2s(g.x2,g.y2);
+      cx.strokeStyle=g.active?'rgba(255,180,0,0.7)':'rgba(255,180,0,0.25)';
+      cx.lineWidth=1.2;cx.setLineDash([6,5]);
+      cx.beginPath();cx.moveTo(p1.x,p1.y);cx.lineTo(p2.x,p2.y);cx.stroke();
+    });
+    cx.setLineDash([]);cx.restore();
+  }
+
+  // Indicateur snap — uniquement hors mode sélection
+  if(snapIndicator&&tool!=='select'){
     const sp=w2s(snapIndicator.x,snapIndicator.y);
     // corner=vert, wall=orange, grid=bleu
     const col=snapIndicatorType==='corner'?'#00cc66':snapIndicatorType==='wall'?'#ff9900':'#3a9fff';
@@ -363,7 +614,18 @@ function render(){
     }
   }
 
-  drawScaleBar(); drawTitleBlock();
+  // Point 1 de calibration
+  if(scalePt1){
+    const sp=w2s(scalePt1.x,scalePt1.y);
+    cx.fillStyle='#ff5500';cx.strokeStyle='white';cx.lineWidth=2;
+    cx.beginPath();cx.arc(sp.x,sp.y,7,0,2*Math.PI);cx.fill();cx.stroke();
+  }
+  // Ghost preview meuble pendant le placement
+  if(tool==='furn'){
+    const ghostF={id:-1,t:'furn',ftype:selectedFurnType,x:mx,y:my,angle:0};
+    cx.globalAlpha=0.45;drawFurniture(ghostF);cx.globalAlpha=1;
+  }
+  drawScaleBar();
   updateStatus();
 }
 
@@ -413,6 +675,162 @@ function drawGrid(){
   cx.stroke();
 }
 
+function drawBgImage(){
+  if(!bgImage)return;
+  const ps=w2s(bgX,bgY),pe=w2s(bgX+bgW,bgY+bgH);
+  cx.globalAlpha=bgOpacity;
+  cx.drawImage(bgImage,ps.x,ps.y,pe.x-ps.x,pe.y-ps.y);
+  cx.globalAlpha=1;
+}
+function formatDist(mm){
+  const m=mm/1000;
+  return (m>=1?m.toFixed(1):m.toFixed(2)).replace('.',',')+' m';
+}
+// Ligne de cote style CAD : 2 barres + flèche + label
+// active=true → bordure bleue (valeur mesurée) | active=false → blanc normal (saisie utilisateur)
+function drawDimLine(sx1,sy1,sx2,sy2,label,active=false){
+  const dx=sx2-sx1,dy=sy2-sy1,len=Math.hypot(dx,dy);
+  if(len<8)return;
+  const ux=dx/len,uy=dy/len;
+  const nx=uy,ny=-ux;   // perpendiculaire CW (au-dessus des murs horizontaux)
+  const off=28;
+  const d1x=sx1+nx*off,d1y=sy1+ny*off;
+  const d2x=sx2+nx*off,d2y=sy2+ny*off;
+  cx.save();
+  cx.strokeStyle='#2a7fd4';cx.fillStyle='#2a7fd4';cx.lineWidth=1.3;cx.setLineDash([]);
+  // Lignes d'attache
+  cx.beginPath();
+  cx.moveTo(sx1+nx*5,sy1+ny*5);cx.lineTo(d1x+nx*5,d1y+ny*5);
+  cx.moveTo(sx2+nx*5,sy2+ny*5);cx.lineTo(d2x+nx*5,d2y+ny*5);
+  cx.stroke();
+  // Ligne principale
+  cx.beginPath();cx.moveTo(d1x,d1y);cx.lineTo(d2x,d2y);cx.stroke();
+  // Flèches (triangles pleins)
+  const aL=8;
+  const arr=(bx,by,dir)=>{
+    cx.beginPath();
+    cx.moveTo(bx,by);
+    cx.lineTo(bx+dir*ux*aL-uy*aL*.35,by+dir*uy*aL+ux*aL*.35);
+    cx.lineTo(bx+dir*ux*aL+uy*aL*.35,by+dir*uy*aL-ux*aL*.35);
+    cx.closePath();cx.fill();
+  };
+  arr(d1x,d1y,1);arr(d2x,d2y,-1);
+  // Label centré — bordure bleue si active, blanc normal si saisie utilisateur
+  const mx2=(d1x+d2x)/2,my2=(d1y+d2y)/2;
+  cx.font='bold 12px sans-serif';
+  const tw=cx.measureText(label).width;
+  const lx=mx2-tw/2-7,ly=my2-11,lw=tw+14,lh=22,r=5;
+  cx.fillStyle=active?'rgba(232,246,255,0.97)':'rgba(255,255,255,0.97)';
+  cx.strokeStyle=active?'#29b5f6':'#2a7fd4';
+  cx.lineWidth=active?2:1;
+  cx.beginPath();
+  cx.moveTo(lx+r,ly);cx.lineTo(lx+lw-r,ly);cx.arcTo(lx+lw,ly,lx+lw,ly+r,r);
+  cx.lineTo(lx+lw,ly+lh-r);cx.arcTo(lx+lw,ly+lh,lx+lw-r,ly+lh,r);
+  cx.lineTo(lx+r,ly+lh);cx.arcTo(lx,ly+lh,lx,ly+lh-r,r);
+  cx.lineTo(lx,ly+r);cx.arcTo(lx,ly,lx+r,ly,r);cx.closePath();
+  cx.fill();cx.stroke();
+  cx.fillStyle='#0a3a8c';cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillText(label,mx2,my2);
+  cx.restore();
+}
+function loadBgImage(input){
+  const file=input.files[0];if(!file)return;
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{bgImage=img;bgX=0;bgY=0;bgW=3000;bgH=2200;URL.revokeObjectURL(url);render();};
+  img.src=url;
+  input.value='';
+}
+
+// ── Détection automatique des pièces fermées (flood fill) ──
+function recomputeAutoRooms(){
+  autoRooms=[];
+  if(walls.length<3)return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  walls.forEach(w=>{minX=Math.min(minX,w.x1,w.x2);minY=Math.min(minY,w.y1,w.y2);maxX=Math.max(maxX,w.x1,w.x2);maxY=Math.max(maxY,w.y1,w.y2);});
+  const pad=G.sz*4;minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
+  const ww=maxX-minX,wh=maxY-minY;if(ww<1||wh<1)return;
+  // Grille : 1 cellule ≈ G.sz (taille d'un carreau)
+  const gw=Math.max(10,Math.min(600,Math.ceil(ww/G.sz)));
+  const gh=Math.max(10,Math.min(600,Math.ceil(wh/G.sz)));
+  const toGX=x=>Math.max(0,Math.min(gw-1,Math.round((x-minX)/ww*(gw-1))));
+  const toGY=y=>Math.max(0,Math.min(gh-1,Math.round((y-minY)/wh*(gh-1))));
+  const toWX=gx=>minX+gx/(gw-1)*ww;
+  const toWY=gy=>minY+gy/(gh-1)*wh;
+  // Rasteriser les murs (Bresenham, épaisseur 2 pour fermer les coins)
+  const grid=new Uint8Array(gw*gh);
+  walls.forEach(w=>{
+    const segs=getWallSegs(w,20);
+    segs.forEach(([ax,ay,bx2,by2])=>{
+      let x0=toGX(ax),y0=toGY(ay),x1=toGX(bx2),y1=toGY(by2);
+      const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;
+      let err=dx-dy,x=x0,y=y0;
+      for(;;){
+        for(let oy2=0;oy2<=1;oy2++)for(let ox=0;ox<=1;ox++){const nx=x+ox,ny=y+oy2;if(nx>=0&&nx<gw&&ny>=0&&ny<gh)grid[ny*gw+nx]=1;}
+        if(x===x1&&y===y1)break;
+        const e2=2*err;if(e2>-dy){err-=dy;x+=sx;}if(e2<dx){err+=dx;y+=sy;}
+      }
+    });
+  });
+  // Flood fill depuis les bords (extérieur)
+  const vis=new Uint8Array(gw*gh);const q=[];let head=0;
+  const seed=(x,y)=>{const i=y*gw+x;if(!grid[i]&&!vis[i]){vis[i]=1;q.push(i);}};
+  for(let x=0;x<gw;x++){seed(x,0);seed(x,gh-1);}
+  for(let y=1;y<gh-1;y++){seed(0,y);seed(gw-1,y);}
+  while(head<q.length){
+    const idx=q[head++],x=idx%gw,y=(idx/gw)|0;
+    for(const[nx,ny]of[[x-1,y],[x+1,y],[x,y-1],[x,y+1]]){if(nx<0||nx>=gw||ny<0||ny>=gh)continue;const ni=ny*gw+nx;if(vis[ni]||grid[ni])continue;vis[ni]=1;q.push(ni);}
+  }
+  // Trouver les régions fermées
+  const lbl=new Int32Array(gw*gh).fill(-1);let nl=0;
+  for(let idx=0;idx<gw*gh;idx++){
+    if(grid[idx]||vis[idx]||lbl[idx]>=0)continue;
+    const cells=[];const q2=[idx];let h2=0;lbl[idx]=nl;
+    while(h2<q2.length){
+      const ci=q2[h2++];cells.push(ci);const cx2=ci%gw,cy2=(ci/gw)|0;
+      for(const[nx,ny]of[[cx2-1,cy2],[cx2+1,cy2],[cx2,cy2-1],[cx2,cy2+1]]){if(nx<0||nx>=gw||ny<0||ny>=gh)continue;const ni=ny*gw+nx;if(grid[ni]||vis[ni]||lbl[ni]>=0)continue;lbl[ni]=nl;q2.push(ni);}
+    }
+    if(cells.length>=9){
+      let sx=0,sy=0;cells.forEach(i=>{sx+=i%gw;sy+=(i/gw)|0;});
+      const wcx=toWX(sx/cells.length),wcy=toWY(sy/cells.length);
+      const key=`${Math.round(wcx/(G.sz*5))*G.sz*5},${Math.round(wcy/(G.sz*5))*G.sz*5}`;
+      autoRooms.push({cx:wcx,cy:wcy,key,area:cells.length});
+    }
+    nl++;
+  }
+  // Numérotation : scan 1→∞ sur les pièces ACTIVES uniquement
+  // → numéro libéré si la pièce disparaît, réutilisé pour la suivante
+  const usedNums=new Set();
+  autoRooms.forEach(r=>{
+    const m=(autoRoomLabels[r.key]||'').match(/^Pièce (\d+)$/i);
+    if(m)usedNums.add(+m[1]);
+  });
+  autoRooms.forEach(r=>{
+    if(!autoRoomLabels[r.key]){
+      let n=1;while(usedNums.has(n))n++;
+      usedNums.add(n);
+      autoRoomLabels[r.key]='Pièce '+n;
+    }
+  });
+}
+
+function drawAutoRooms(){
+  if(!autoRooms.length)return;
+  cx.save();
+  autoRooms.forEach(r=>{
+    const s=w2s(r.cx,r.cy);
+    const lbl=autoRoomLabels[r.key]||'Pièce';
+    const fs=Math.max(11,13*zoom);
+    cx.font=`${fs}px sans-serif`;
+    const tw=cx.measureText(lbl).width;
+    cx.fillStyle='rgba(255,255,255,0.75)';
+    cx.fillRect(s.x-tw/2-4,s.y-fs/2-3,tw+8,fs+6);
+    cx.fillStyle='rgba(50,50,50,0.85)';cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(lbl,s.x,s.y);
+  });
+  cx.restore();
+}
+
 // ── Remplissage beige des pièces + étiquette m² ──────────
 function drawRoomFills(){
   const scale=G.sz*5; // world units par mètre (100 = 1 m)
@@ -436,17 +854,232 @@ function drawRoomFills(){
   });
 }
 
-const WALL_COL='#7d8898';   // gris architectural
+let wallColor='#000000';   // couleur des murs (modifiable)
+
+// ── Meubles ───────────────────────────────────────────────
+let furnitures=[];
+let selectedFurnType='table';
+const FURN_DEFS={
+  table:  {label:'Table',    fw:120,fh:80},
+  chaise: {label:'Chaise',   fw:45, fh:45},
+  canape: {label:'Canapé',   fw:200,fh:80},
+  lit:    {label:'Lit',      fw:140,fh:200},
+  bureau: {label:'Bureau',   fw:120,fh:60},
+  armoire:{label:'Armoire',  fw:120,fh:55},
+  bain:   {label:'Baignoire',fw:160,fh:70},
+  wc:     {label:'WC',       fw:40, fh:55},
+  evier:  {label:'Évier',    fw:55, fh:55},
+  douche: {label:'Douche',   fw:90, fh:90},
+  libre:  {label:'Libre',    fw:100,fh:80},
+};
 const WALL_W=14;            // épaisseur en unités monde (~14 cm)
+
+// ── Dessin meubles ────────────────────────────────────────
+function drawFurniture(f){
+  const def=FURN_DEFS[f.ftype]||FURN_DEFS.table;
+  const sc=w2s(f.x,f.y);
+  const sw=(f.fw||def.fw)*zoom, sh=(f.fh||def.fh)*zoom;
+  const sel=SEL&&SEL.id===f.id;
+  cx.save();
+  cx.translate(sc.x,sc.y);
+  cx.rotate(f.angle||0);
+  const hw=sw/2,hh=sh/2;
+  const fc=sel?'rgba(90,160,255,.30)':'rgba(200,220,240,.75)';
+  const sc2=sel?'#3a9fff':'#567a9a';
+  const lw=sel?2*zoom:1.5*zoom;
+  cx.fillStyle=fc; cx.strokeStyle=sc2; cx.lineWidth=lw;
+  const ft=f.ftype;
+  if(ft==='table'){
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Petites chaises symboliques
+    const cs=Math.min(sw*.22,sh*.33);
+    cx.fillStyle=sel?'rgba(90,160,255,.55)':'rgba(160,195,220,.9)';
+    cx.fillRect(-hw+2,-hh-cs*.8,sw-4,cs*.7);
+    cx.fillRect(-hw+2,hh+cs*.1,sw-4,cs*.7);
+  } else if(ft==='chaise'){
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Dossier = bande épaisse en haut
+    cx.fillStyle=sel?'rgba(90,160,255,.6)':'rgba(130,170,200,.9)';
+    cx.fillRect(-hw,-hh,sw,sh*.25);
+  } else if(ft==='canape'){
+    // Corps
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Dossier en haut
+    cx.fillStyle=sel?'rgba(90,160,255,.45)':'rgba(140,180,210,.85)';
+    cx.fillRect(-hw,-hh,sw,sh*.3);
+    // Accoudoirs
+    cx.fillRect(-hw,-hh,sw*.08,sh);
+    cx.fillRect(hw-sw*.08,-hh,sw*.08,sh);
+    // Coussins : 3 lignes verticales
+    cx.strokeStyle=sc2; cx.lineWidth=lw*.6;
+    const third=sw/3;
+    cx.beginPath();cx.moveTo(-hw+third,-hh+sh*.3);cx.lineTo(-hw+third,hh);
+    cx.moveTo(-hw+third*2,-hh+sh*.3);cx.lineTo(-hw+third*2,hh);cx.stroke();
+  } else if(ft==='lit'){
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Tête de lit en haut
+    cx.fillStyle=sel?'rgba(90,160,255,.45)':'rgba(140,180,210,.85)';
+    cx.fillRect(-hw,-hh,sw,sh*.18);
+    // Oreillers
+    cx.fillStyle=sel?'rgba(90,160,255,.25)':'rgba(230,240,250,.9)';
+    cx.strokeStyle=sc2; cx.lineWidth=lw*.7;
+    const pw=sw*.38,ph=sh*.14,px=-hw+sw*.07,py=-hh+sh*.2;
+    cx.beginPath();cx.roundRect(px,py,pw,ph,3*zoom);cx.fill();cx.stroke();
+    cx.beginPath();cx.roundRect(px+sw*.48,py,pw,ph,3*zoom);cx.fill();cx.stroke();
+  } else if(ft==='bureau'){
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Tiroirs : 2 lignes horizontales
+    cx.strokeStyle=sc2; cx.lineWidth=lw*.6;
+    cx.beginPath();
+    cx.moveTo(-hw+sw*.55,-hh); cx.lineTo(-hw+sw*.55,hh);
+    cx.moveTo(-hw+sw*.55,-hh+sh*.5); cx.lineTo(hw,-hh+sh*.5); cx.stroke();
+  } else if(ft==='armoire'){
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Ligne centrale (2 portes)
+    cx.strokeStyle=sc2; cx.lineWidth=lw*.6;
+    cx.beginPath();cx.moveTo(0,-hh);cx.lineTo(0,hh);cx.stroke();
+    // Poignées
+    const hnd=sh*.08;
+    cx.beginPath();
+    cx.arc(-hw*.2,0,hnd*.4,0,Math.PI*2);
+    cx.moveTo(hw*.2+hnd*.4,0);cx.arc(hw*.2,0,hnd*.4,0,Math.PI*2);cx.stroke();
+  } else if(ft==='bain'){
+    // Baignoire = rect arrondi
+    cx.beginPath();cx.roundRect(-hw,-hh,sw,sh,sh*.35);cx.fill();cx.stroke();
+    // Bonde au pied
+    cx.fillStyle=sc2;
+    cx.beginPath();cx.arc(hw*.55,0,sh*.08,0,Math.PI*2);cx.fill();
+    // Robinets en haut
+    cx.strokeStyle=sc2;cx.lineWidth=lw;
+    cx.beginPath();cx.arc(-hw*.55,0,sh*.15,-Math.PI*.6,Math.PI*.6,false);cx.stroke();
+  } else if(ft==='wc'){
+    // Cuvette : D allongé
+    cx.beginPath();
+    cx.moveTo(-hw,-hh*.4);cx.lineTo(-hw,hh*.4);
+    cx.quadraticCurveTo(hw*1.2,hh*.4,hw*1.2,0);
+    cx.quadraticCurveTo(hw*1.2,-hh*.4,-hw,-hh*.4);
+    cx.closePath();cx.fill();cx.stroke();
+    // Réservoir
+    cx.fillStyle=sel?'rgba(90,160,255,.35)':'rgba(170,200,220,.85)';
+    cx.fillRect(-hw,-hh,sw*.4,sh);cx.strokeRect(-hw,-hh,sw*.4,sh);
+  } else if(ft==='evier'){
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Bac : ovale centré
+    cx.strokeStyle=sc2; cx.lineWidth=lw;
+    cx.beginPath();cx.ellipse(0,0,hw*.7,hh*.7,0,0,Math.PI*2);cx.stroke();
+    // Bonde
+    cx.fillStyle=sc2;cx.beginPath();cx.arc(0,hh*.35,hh*.1,0,Math.PI*2);cx.fill();
+    // Robinet
+    cx.strokeStyle=sc2;cx.lineWidth=lw;
+    cx.beginPath();cx.moveTo(-hw*.15,-hh*.2);cx.lineTo(-hw*.15,-hh*.55);cx.lineTo(hw*.15,-hh*.55);cx.stroke();
+  } else if(ft==='douche'){
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    // Quart de cercle avec bonde
+    cx.strokeStyle=sc2; cx.lineWidth=lw*.7;
+    cx.beginPath();cx.arc(hw,hh,sw*.85,Math.PI,Math.PI*1.5,false);cx.stroke();
+    // Bonde
+    cx.fillStyle=sc2;cx.beginPath();cx.arc(hw*.5,hh*.5,hh*.12,0,Math.PI*2);cx.fill();
+  } else {
+    // Meuble libre : rectangle pointillé avec le nom custom
+    cx.setLineDash([5*zoom,4*zoom]);
+    cx.fillRect(-hw,-hh,sw,sh); cx.strokeRect(-hw,-hh,sw,sh);
+    cx.setLineDash([]);
+  }
+  // Label : utilise f.name si défini (meuble libre), sinon def.label
+  const displayLabel=f.name||def.label;
+  // Sélection : 8 poignées redimensionnables (coins+bords) + rotation
+  if(sel){
+    const HANDLES=[[-hw,-hh],[0,-hh],[hw,-hh],[hw,0],[hw,hh],[0,hh],[-hw,hh],[-hw,0]];
+    HANDLES.forEach(([hx,hy],i)=>{
+      // Poignées de coin (0,2,4,6) légèrement plus grandes
+      const r=i%2===0?5:4;
+      cx.fillStyle=resizingFurnHandle&&resizingFurnHandle.hi===i?'#ff9500':'#3a9fff';
+      cx.strokeStyle='white'; cx.lineWidth=1.5;
+      cx.beginPath();cx.arc(hx,hy,r,0,Math.PI*2);cx.fill();cx.stroke();
+    });
+    // Poignée de rotation : cercle orange au-dessus
+    cx.fillStyle='#ff9500'; cx.strokeStyle='white'; cx.lineWidth=1.5;
+    cx.beginPath();cx.arc(0,-hh-12,6,0,Math.PI*2);cx.fill();cx.stroke();
+    cx.strokeStyle='#ff9500'; cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(0,-hh-6);cx.lineTo(0,-hh-1);cx.stroke();
+    // Étiquette sélectionnée
+    cx.fillStyle='rgba(0,0,0,.55)'; cx.strokeStyle='rgba(255,255,255,.7)'; cx.lineWidth=3;
+    cx.font=`bold ${Math.max(9,10*zoom)}px sans-serif`;
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.strokeText(displayLabel,0,0); cx.fillStyle='rgba(0,0,30,.8)'; cx.fillText(displayLabel,0,0);
+    // Cote dimensions
+    cx.fillStyle='rgba(58,159,255,.8)';
+    cx.font=`${Math.max(7,8*zoom)}px sans-serif`;
+    const wm=Math.round((f.fw||def.fw)*worldScale/10)/100;
+    const hm=Math.round((f.fh||def.fh)*worldScale/10)/100;
+    cx.fillText(`${wm}m × ${hm}m`,0,hh+12);
+  } else {
+    // Étiquette discrète
+    cx.fillStyle='rgba(40,60,80,.6)';
+    cx.font=`${Math.max(8,9*zoom)}px sans-serif`;
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText(displayLabel,0,0);
+  }
+  cx.restore();
+}
+
 function drawWall(w,alpha){
   const s=w2s(w.x1,w.y1),e=w2s(w.x2,w.y2);
   const sel=SEL&&SEL.id===w.id;
+  const curved=w.cx!==undefined||w.cx1!==undefined;
   if(alpha!==undefined) cx.globalAlpha=alpha;
-  cx.strokeStyle=sel?'#3a9fff':WALL_COL;
-  cx.lineWidth=WALL_W*zoom;cx.lineCap='square';
-  cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();
+  cx.strokeStyle=sel?'#3a9fff':wallColor;
+  cx.lineWidth=WALL_W*zoom;
+  cx.lineCap=curved?'round':'square';
+  cx.beginPath();cx.moveTo(s.x,s.y);
+  if(w.cx1!==undefined){
+    const c1=w2s(w.cx1,w.cy1),c2=w2s(w.cx2,w.cy2);
+    cx.bezierCurveTo(c1.x,c1.y,c2.x,c2.y,e.x,e.y);
+  } else if(w.cx!==undefined){
+    const cp=w2s(w.cx,w.cy);
+    cx.quadraticCurveTo(cp.x,cp.y,e.x,e.y);
+  } else {
+    cx.lineTo(e.x,e.y);
+  }
+  cx.stroke();
   if(alpha!==undefined) cx.globalAlpha=1;
   if(sel){[s,e].forEach(p=>{cx.fillStyle='#3a9fff';cx.beginPath();cx.arc(p.x,p.y,5,0,2*Math.PI);cx.fill();});}
+}
+
+// Efface le mur sous une porte/fenêtre en suivant la courbe si nécessaire
+function eraseWallUnder(el){
+  const dcx=(el.x1+el.x2)/2,dcy=(el.y1+el.y2)/2;
+  const nearW=nearWall(dcx,dcy,40/zoom);
+  cx.save();
+  cx.strokeStyle='#ffffff';cx.lineWidth=(WALL_W+4)*zoom;cx.lineCap='round';
+  if(nearW&&(nearW.cx!==undefined||nearW.cx1!==undefined)){
+    // Trouver les t-params des deux extrémités sur le bezier
+    const prA=projOnWall(el.x1,el.y1,nearW);
+    const prB=projOnWall(el.x2,el.y2,nearW);
+    const tA=Math.min(prA.t,prB.t),tB=Math.max(prA.t,prB.t);
+    const steps=20;
+    cx.beginPath();
+    for(let i=0;i<=steps;i++){
+      const t=tA+(tB-tA)*i/steps,mt=1-t;
+      let px,py;
+      if(nearW.cx!==undefined){
+        px=mt*mt*nearW.x1+2*mt*t*nearW.cx+t*t*nearW.x2;
+        py=mt*mt*nearW.y1+2*mt*t*nearW.cy+t*t*nearW.y2;
+      } else {
+        px=mt*mt*mt*nearW.x1+3*mt*mt*t*nearW.cx1+3*mt*t*t*nearW.cx2+t*t*t*nearW.x2;
+        py=mt*mt*mt*nearW.y1+3*mt*mt*t*nearW.cy1+3*mt*t*t*nearW.cy2+t*t*t*nearW.y2;
+      }
+      const ps=w2s(px,py);
+      i===0?cx.moveTo(ps.x,ps.y):cx.lineTo(ps.x,ps.y);
+    }
+    cx.stroke();
+  } else {
+    // Mur droit : effacement original
+    const s=w2s(el.x1,el.y1),e=w2s(el.x2,el.y2);
+    cx.lineCap='butt';
+    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();
+  }
+  cx.restore();
 }
 
 function drawDoor(d,isPreview){
@@ -456,13 +1089,9 @@ function drawDoor(d,isPreview){
   const ux=dx/len,uy=dy/len,nx=-uy,ny=ux,op=d.opens||1;
   const sel=SEL&&SEL.id===d.id;
 
-  if(!isPreview){
-    // Effacer le mur (fond beige)
-    cx.save();cx.strokeStyle='#ffffff';cx.lineWidth=(WALL_W+2)*zoom;cx.lineCap='butt';
-    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();cx.restore();
-  }
+  if(!isPreview) eraseWallUnder(d);
 
-  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':WALL_COL);
+  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':wallColor);
   cx.lineWidth=1.8*zoom;cx.setLineDash([]);
   const half=len/2;
 
@@ -499,39 +1128,169 @@ function drawWin(w,isPreview){
   const nx=(-dy/len),ny=(dx/len),th=7*zoom;
   const sel=SEL&&SEL.id===w.id;
 
-  if(!isPreview){
-    cx.save();cx.strokeStyle='#ffffff';cx.lineWidth=(WALL_W+2)*zoom;cx.lineCap='butt';
-    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();cx.restore();
-  }
+  if(!isPreview) eraseWallUnder(w);
 
   cx.fillStyle=isPreview?'rgba(58,159,255,.35)':(sel?'rgba(58,159,255,.4)':'rgba(200,215,235,.55)');
   cx.beginPath();
   cx.moveTo(s.x+nx*th,s.y+ny*th);cx.lineTo(e.x+nx*th,e.y+ny*th);
   cx.lineTo(e.x-nx*th,e.y-ny*th);cx.lineTo(s.x-nx*th,s.y-ny*th);
   cx.closePath();cx.fill();
-  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':WALL_COL);cx.lineWidth=1.5*zoom;
+  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':wallColor);cx.lineWidth=1.5*zoom;
   for(const t of[-.5,0,.5]){
     const off=t*th*.9;
     cx.beginPath();cx.moveTo(s.x+nx*off,s.y+ny*off);cx.lineTo(e.x+nx*off,e.y+ny*off);cx.stroke();
   }
 }
 
+// ── Raycasting : intersection rayon / segment ─────────────
+function raySegment(ox,oy,ddx,ddy,x1,y1,x2,y2){
+  const sx=x2-x1,sy=y2-y1,denom=ddx*sy-ddy*sx;
+  if(Math.abs(denom)<0.001)return Infinity;
+  const tx=x1-ox,ty=y1-oy;
+  const t=(tx*sy-ty*sx)/denom,u=(tx*ddy-ty*ddx)/denom;
+  return(t>0.5&&u>=-0.001&&u<=1.001)?t:Infinity;
+}
+// Demi-angles indépendants : fovL = gauche, fovR = droite (en degrés)
+function getCamFovL(c){return c.fovL!==undefined?c.fovL:(c.fov||70)/2;}
+function getCamFovR(c){return c.fovR!==undefined?c.fovR:(c.fov||70)/2;}
+// ── Helpers bezier ─────────────────────────────────────────
+// Segmente un mur en lignes droites (gère droit, quadratique, cubique)
+function getWallSegs(w,steps=16){
+  if(w.cx1!==undefined){
+    const s=[];let ox=w.x1,oy=w.y1;
+    for(let i=1;i<=steps;i++){const t=i/steps,mt=1-t;
+      const bx=mt*mt*mt*w.x1+3*mt*mt*t*w.cx1+3*mt*t*t*w.cx2+t*t*t*w.x2;
+      const by=mt*mt*mt*w.y1+3*mt*mt*t*w.cy1+3*mt*t*t*w.cy2+t*t*t*w.y2;
+      s.push([ox,oy,bx,by]);ox=bx;oy=by;}
+    return s;
+  }
+  if(w.cx!==undefined){
+    const s=[];let ox=w.x1,oy=w.y1;
+    for(let i=1;i<=steps;i++){const t=i/steps,mt=1-t;
+      const bx=mt*mt*w.x1+2*mt*t*w.cx+t*t*w.x2;
+      const by=mt*mt*w.y1+2*mt*t*w.cy+t*t*w.y2;
+      s.push([ox,oy,bx,by]);ox=bx;oy=by;}
+    return s;
+  }
+  return [[w.x1,w.y1,w.x2,w.y2]];
+}
+// Distance point→bezier quadratique (approx segments)
+function d2bezQ(px,py,x1,y1,cx,cy,x2,y2){
+  let m=Infinity,ox=x1,oy=y1;
+  for(let i=1;i<=16;i++){const t=i/16,mt=1-t;
+    const bx=mt*mt*x1+2*mt*t*cx+t*t*x2;
+    const by=mt*mt*y1+2*mt*t*cy+t*t*y2;
+    const d=d2seg(px,py,ox,oy,bx,by);if(d<m)m=d;ox=bx;oy=by;}
+  return m;
+}
+// Distance point→bezier cubique
+function d2bezC(px,py,x1,y1,cx1,cy1,cx2,cy2,x2,y2){
+  let m=Infinity,ox=x1,oy=y1;
+  for(let i=1;i<=16;i++){const t=i/16,mt=1-t;
+    const bx=mt*mt*mt*x1+3*mt*mt*t*cx1+3*mt*t*t*cx2+t*t*t*x2;
+    const by=mt*mt*mt*y1+3*mt*mt*t*cy1+3*mt*t*t*cy2+t*t*t*y2;
+    const d=d2seg(px,py,ox,oy,bx,by);if(d<m)m=d;ox=bx;oy=by;}
+  return m;
+}
+// Point sur bezier quadratique au paramètre t
+function bezQPt(t,x1,y1,cx,cy,x2,y2){
+  const mt=1-t;
+  return{x:mt*mt*x1+2*mt*t*cx+t*t*x2, y:mt*mt*y1+2*mt*t*cy+t*t*y2};
+}
+// Dessine une courbe de Catmull-Rom à travers pts (canvas path, déjà moveTo(pts[0]))
+function catmullRomPath(pts){
+  const alpha=1/6;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    const cp1s=w2s(p1.x+(p2.x-p0.x)*alpha,p1.y+(p2.y-p0.y)*alpha);
+    const cp2s=w2s(p2.x-(p3.x-p1.x)*alpha,p2.y-(p3.y-p1.y)*alpha);
+    const p2s=w2s(p2.x,p2.y);
+    cx.bezierCurveTo(cp1s.x,cp1s.y,cp2s.x,cp2s.y,p2s.x,p2s.y);
+  }
+}
+// Polygone de visibilité de la caméra (cône bloqué par les murs)
+// fovL et fovR = demi-angles en DEGRÉS (peuvent être différents → cône asymétrique)
+function computeVisiPoly(wx,wy,angle,fovL,fovR,range){
+  const aStart=angle-fovL*Math.PI/180;
+  const aEnd=angle+fovR*Math.PI/180;
+  const steps=Math.max(24,Math.ceil(fovL+fovR));
+  const poly=[];
+  for(let i=0;i<=steps;i++){
+    const theta=aStart+(aEnd-aStart)*i/steps;
+    const dx=Math.cos(theta),dy=Math.sin(theta);
+    let minT=range;
+    for(const w of walls){
+      for(const [sx1,sy1,sx2,sy2] of getWallSegs(w)){
+        const t=raySegment(wx,wy,dx,dy,sx1,sy1,sx2,sy2);if(t<minT)minT=t;
+      }
+    }
+    poly.push({x:wx+dx*minT,y:wy+dy*minT});
+  }
+  return poly;
+}
+// ── Pictogramme caméra SVG officiel (vue de dessus) ───────
+// Path extrait du fichier "pictogramme camera.svg"
+// Corps : x=1240→1749 y=1380→1630 (h=250 demi=125), objectif vers +x
+// Centre visuel de tout le pictogramme : x≈1575, y=1505 (symétrique)
+function getCamPath(){
+  if(!_camPath)_camPath=new Path2D("M1240 1505 l0 -125 254 0 255 0 3 50 3 50 67 -45 c37 -25 72 -45 78 -45 6 0 10 40 10 105 0 65 -4 105 -10 105 -6 0 -41 -20 -78 -45 l-67 -45 -3 60 -3 60 -254 0 -255 0 0 -125z");
+  return _camPath;
+}
+function drawCamIcon(scx,scy,angle,sel){
+  const h=7*zoom;    // demi-hauteur souhaitée en pixels
+  const s=h/125;     // facteur d'échelle path→px (demi-hauteur path = 125 u)
+  cx.save();
+  cx.translate(scx,scy);
+  cx.rotate(angle);
+  cx.scale(s,-s);            // scale + flip Y (origine SVG = bas-gauche)
+  cx.translate(-1575,-1505); // centrer sur le milieu visuel du pictogramme
+  cx.fillStyle=sel?'#1a6acc':'#1e3a5f';
+  cx.strokeStyle=sel?'#5ab0ff':'#4a7090';
+  cx.lineWidth=1.6*zoom/s;   // épaisseur constante quel que soit le zoom
+  const p=getCamPath();
+  cx.fill(p);cx.stroke(p);
+  cx.restore();
+}
 function drawCam(c){
   const sc=w2s(c.x,c.y);
-  drawCamAt(sc.x,sc.y,c.angle,c.fov,c.num,SEL&&SEL.id===c.id);
+  const sel=SEL&&SEL.id===c.id;
+  // Preview live des valeurs saisies dans les labels éditables
+  const liveRange=(sel&&camSelField==='range'&&camSelInput)?
+    Math.max(50,parseFloat(camSelInput.replace(',','.'))*100):(c.range||800);
+  const range=liveRange;
+  // Demi-angles indépendants (live preview si FOV en cours de saisie)
+  let liveFovL=getCamFovL(c), liveFovR=getCamFovR(c);
+  if(sel&&camSelField==='fov'&&camSelInput){
+    const v=Math.min(360,Math.max(2,parseFloat(camSelInput.replace(',','.'))||1));
+    liveFovL=liveFovR=v/2;
+  }
+  // Cône de visibilité (raycasting)
+  const poly=computeVisiPoly(c.x,c.y,c.angle,liveFovL,liveFovR,range);
+  const camIdx=(c.num-1)%CAM_CONE_COLORS.length;
+  const [cFill,cStroke]=CAM_CONE_COLORS[camIdx];
+  cx.fillStyle=sel?cFill.replace('.18','.32'):cFill;
+  cx.strokeStyle=sel?cStroke:cStroke.replace('.7','.45');cx.lineWidth=1*zoom;
+  cx.beginPath();cx.moveTo(sc.x,sc.y);
+  poly.forEach(p=>{const ps=w2s(p.x,p.y);cx.lineTo(ps.x,ps.y);});
+  cx.closePath();cx.fill();cx.stroke();
+  // Pictogramme
+  drawCamIcon(sc.x,sc.y,c.angle,sel);
+  if(c.num){cx.font=`bold ${10*zoom}px sans-serif`;cx.textAlign='center';cx.fillStyle='#e94560';cx.fillText('CAM'+c.num,sc.x,sc.y+16*zoom);}
 }
-function drawCamAt(scx,scy,angle,fov,num,sel){
-  const fovR=(fov||70)*Math.PI/180,rng=200*zoom;
-  cx.fillStyle=sel?'rgba(233,69,96,.3)':'rgba(233,69,96,.15)';
-  cx.strokeStyle=sel?'#e94560':'rgba(233,69,96,.7)';cx.lineWidth=1*zoom;
-  cx.beginPath();cx.moveTo(scx,scy);cx.arc(scx,scy,rng,angle-fovR/2,angle+fovR/2);cx.closePath();cx.fill();cx.stroke();
-  const bw=13*zoom,bh=9*zoom;
-  cx.save();cx.translate(scx,scy);cx.rotate(angle);
-  cx.fillStyle=sel?'#e94560':'#c0392b';cx.strokeStyle='#800';cx.lineWidth=1*zoom;
-  cx.fillRect(-bw/2,-bh/2,bw,bh);cx.strokeRect(-bw/2,-bh/2,bw,bh);
-  cx.fillStyle='#1a1a2e';cx.beginPath();cx.arc(bw/4,0,bh/3,0,2*Math.PI);cx.fill();
-  cx.restore();
-  if(num){cx.font=`bold ${10*zoom}px sans-serif`;cx.textAlign='center';cx.fillStyle='#e94560';cx.fillText('CAM'+num,scx,scy+bh/2+14*zoom);}
+// Pour le preview pendant création (garde compatibilité)
+function drawCamAt(scx,scy,angle,fov,num,sel,range){
+  const wx=s2w(scx,scy).x,wy=s2w(scx,scy).y;
+  const r=range||800;
+  const hf=(fov||70)/2;
+  const poly=computeVisiPoly(wx,wy,angle,hf,hf,r);
+  const ci=(cams.length)%CAM_CONE_COLORS.length;
+  const[cFP,cSP]=CAM_CONE_COLORS[ci];
+  cx.fillStyle=cFP.replace('.18','.22');
+  cx.strokeStyle=cSP.replace('.7','.55');cx.lineWidth=1*zoom;
+  cx.beginPath();cx.moveTo(scx,scy);
+  poly.forEach(p=>{const ps=w2s(p.x,p.y);cx.lineTo(ps.x,ps.y);});
+  cx.closePath();cx.fill();cx.stroke();
+  drawCamIcon(scx,scy,angle,sel||false);
 }
 
 function drawLbl(l){
@@ -544,13 +1303,25 @@ function drawLbl(l){
 // ── Preview for door/window tools ─────────────────────────
 function drawPreview(prev){
   const nw=prev.wall;
-  // Highlight wall
+  // Highlight wall — suit la courbe si bezier
   const s=w2s(nw.x1,nw.y1),e=w2s(nw.x2,nw.y2);
-  cx.save();cx.globalAlpha=0.35;cx.strokeStyle='#3a9fff';cx.lineWidth=12*zoom;cx.lineCap='square';
-  cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(e.x,e.y);cx.stroke();cx.restore();
+  cx.save();cx.globalAlpha=0.35;cx.strokeStyle='#3a9fff';
+  cx.lineWidth=12*zoom;cx.lineCap='round';
+  cx.beginPath();cx.moveTo(s.x,s.y);
+  if(nw.cx1!==undefined){
+    const c1=w2s(nw.cx1,nw.cy1),c2=w2s(nw.cx2,nw.cy2);
+    cx.bezierCurveTo(c1.x,c1.y,c2.x,c2.y,e.x,e.y);
+  } else if(nw.cx!==undefined){
+    const cp=w2s(nw.cx,nw.cy);
+    cx.quadraticCurveTo(cp.x,cp.y,e.x,e.y);
+  } else {
+    cx.lineTo(e.x,e.y);
+  }
+  cx.stroke();cx.restore();
 
   const pr=projOnWall(prev.wx,prev.wy,nw);
-  const hw=prev.type==='door'?2*G.sz:3*G.sz;
+  // Tailles standard françaises : porte 83cm, double 126cm, fenêtre 100cm
+  const hw=prev.type==='door'?41.5:prev.type==='door2'?63:50;
   const el={
     t:prev.type==='window'?'win':'door',
     dt:prev.type==='door2'?'double':'single',
@@ -581,9 +1352,10 @@ function drawTitleBlock(){
   cx.fillText("SECUTECH — 10 rue de l'Anjou, 97490 Sainte-Clotilde",mid,ps.y-6*zoom);
 }
 function updateStatus(){
-  const tot=walls.length+doors.length+wins.length+cams.length+lbls.length;
-  document.getElementById('scount').textContent=`${tot} éléments · ${cams.length} caméra(s)`;
+  const tot=walls.length+doors.length+wins.length+cams.length+lbls.length+furnitures.length;
+  document.getElementById('scount').textContent=`${tot} éléments · ${cams.length} cam · ${furnitures.length} meuble(s)`;
   document.getElementById('szoom').textContent=`Zoom: ${Math.round(zoom*100)}%`;
+  const lw=document.getElementById('legwall');if(lw)lw.style.background=wallColor;
 }
 
 // ── Events ───────────────────────────────────────────────
@@ -595,19 +1367,100 @@ cv.addEventListener('mousedown',e=>{
 
   // ── SÉLECTION : uniquement en mode "select" ──
   if(tool==='select'){
+    // Courbe de mur : clic sur le handle diamant
+    if(SEL&&SEL.t==='wall'){
+      let hx,hy;
+      if(SEL.cx!==undefined){const p=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p.x;hy=p.y;}
+      else if(SEL.cx1!==undefined){const t2=0.5,mt2=0.5;hx=mt2*mt2*mt2*SEL.x1+3*mt2*mt2*t2*SEL.cx1+3*mt2*t2*t2*SEL.cx2+t2*t2*t2*SEL.x2;hy=mt2*mt2*mt2*SEL.y1+3*mt2*mt2*t2*SEL.cy1+3*mt2*t2*t2*SEL.cy2+t2*t2*t2*SEL.y2;}
+      else{hx=(SEL.x1+SEL.x2)/2;hy=(SEL.y1+SEL.y2)/2;}
+      const hs=w2s(hx,hy);
+      if(Math.hypot(p.sx-hs.x,p.sy-hs.y)<12){saveHistory();resizingWallCurve=SEL;return;}
+    }
+    // (0) Clic sur label éditable caméra sélectionnée
+    if(SEL&&SEL.t==='cam'){
+      for(const bb of camLabelBBoxes){
+        if(p.sx>=bb.x&&p.sx<=bb.x+bb.w&&p.sy>=bb.y&&p.sy<=bb.y+bb.h){
+          camSelField=bb.field;camSelInput='';render();return;
+        }
+      }
+    }
+    // Drag handles caméra (rotation+portée / FOV indépendants)
+    if(SEL&&SEL.t==='cam'){
+      const liveRange=(camSelField==='range'&&camSelInput)?Math.max(50,parseFloat(camSelInput.replace(',','.'))*100):(SEL.range||800);
+      let liveFovL=getCamFovL(SEL),liveFovR=getCamFovR(SEL);
+      if(camSelField==='fov'&&camSelInput){const v=Math.min(350,Math.max(2,parseFloat(camSelInput.replace(',','.'))||1));liveFovL=liveFovR=v/2;}
+      const range=liveRange;
+      const fovLAngle=SEL.angle-liveFovL*Math.PI/180;
+      const fovRAngle=SEL.angle+liveFovR*Math.PI/180;
+      const handles=[
+        {x:SEL.x+Math.cos(SEL.angle)*range,          y:SEL.y+Math.sin(SEL.angle)*range,          type:'range'},
+        {x:SEL.x+Math.cos(fovLAngle)*range*0.82,      y:SEL.y+Math.sin(fovLAngle)*range*0.82,     type:'fov_l'},
+        {x:SEL.x+Math.cos(fovRAngle)*range*0.82,      y:SEL.y+Math.sin(fovRAngle)*range*0.82,     type:'fov_r'},
+      ];
+      for(const h of handles){
+        const hs=w2s(h.x,h.y);
+        if(Math.hypot(p.sx-hs.x,p.sy-hs.y)<12){
+          saveHistory();resizingCam={cam:SEL,type:h.type};return;
+        }
+      }
+    }
+    // Poignées meuble sélectionné : rotation + 8 handles redimensionnables
+    if(SEL&&SEL.t==='furn'){
+      const def=FURN_DEFS[SEL.ftype]||FURN_DEFS.table;
+      const fw=SEL.fw||def.fw, fh=SEL.fh||def.fh;
+      const hw=fw/2, hh=fh/2;
+      const a=SEL.angle||0;
+      const cos=Math.cos(a), sin=Math.sin(a);
+      // Poignée de rotation (orange, au-dessus)
+      const dist=hh+12/zoom;
+      const rhs=w2s(SEL.x+sin*dist, SEL.y-cos*dist);
+      if(Math.hypot(p.sx-rhs.x,p.sy-rhs.y)<12){saveHistory();rotatingFurn={furn:SEL};return;}
+      // 8 poignées de redimensionnement
+      const HANDLES=[[-hw,-hh],[0,-hh],[hw,-hh],[hw,0],[hw,hh],[0,hh],[-hw,hh],[-hw,0]];
+      for(let hi=0;hi<HANDLES.length;hi++){
+        const [lx,ly]=HANDLES[hi];
+        const wsx=SEL.x+cos*lx-sin*ly, wsy=SEL.y+sin*lx+cos*ly;
+        const hs=w2s(wsx,wsy);
+        const r=hi%2===0?7:6; // coins un peu plus faciles à attraper
+        if(Math.hypot(p.sx-hs.x,p.sy-hs.y)<r){
+          saveHistory();
+          // Stocker les dims originales ET le point fixe (côté opposé) en monde
+          // pour que le côté opposé reste ancré tout au long du drag
+          const SIGNS=[[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]];
+          const [osx,osy]=SIGNS[hi];
+          const ofx=-osx*hw, ofy=-osy*hh; // coords locales du côté fixe
+          const initPfx=SEL.x+Math.cos(a)*ofx-Math.sin(a)*ofy;
+          const initPfy=SEL.y+Math.sin(a)*ofx+Math.cos(a)*ofy;
+          resizingFurnHandle={furn:SEL,hi,origHw:hw,origHh:hh,initPfx,initPfy};return;
+        }
+      }
+    }
+    // Drag resize porte/fenêtre : clic près d'un endpoint
+    if(SEL&&(SEL.t==='door'||SEL.t==='win')){
+      const s=w2s(SEL.x1,SEL.y1),en=w2s(SEL.x2,SEL.y2);
+      const d1=Math.hypot(p.sx-s.x,p.sy-s.y),d2=Math.hypot(p.sx-en.x,p.sy-en.y);
+      if(d1<12||d2<12){
+        const len=Math.hypot(SEL.x2-SEL.x1,SEL.y2-SEL.y1)||1;
+        saveHistory();
+        resizingDoor={el:SEL,movingEnd:d1<d2?0:1,
+          ux:(SEL.x2-SEL.x1)/len,uy:(SEL.y2-SEL.y1)/len};
+        return;
+      }
+    }
     const hit=hitTest(p.rwx,p.rwy);
     if(hit){
+      if(!SEL||SEL.id!==hit.id){camSelField=null;camSelInput='';}
       saveHistory();
       SEL=hit;
-      moving=true;moveSX=p.rwx;moveSY=p.rwy;
-      rawDragX=p.rwx;rawDragY=p.rwy;
-      // Offset : souris_départ − position de référence de l'élément
-      if(hit.t==='wall')       dragOffset={x:p.rwx-hit.x1, y:p.rwy-hit.y1};
-      else if(hit.t==='corner')dragOffset={x:p.rwx-hit.x,  y:p.rwy-hit.y};
-      else                     dragOffset={x:p.rwx-(hit.x||hit.x1||0), y:p.rwy-(hit.y||hit.y1||0)};
+      moving=true;moveSX=p.wx;moveSY=p.wy;
+      rawDragX=p.wx;rawDragY=p.wy;
+      // Offset : souris aimantée − position de référence de l'élément
+      if(hit.t==='wall')       dragOffset={x:p.wx-hit.x1, y:p.wy-hit.y1};
+      else if(hit.t==='corner')dragOffset={x:p.wx-hit.x,  y:p.wy-hit.y};
+      else                     dragOffset={x:p.wx-(hit.x||hit.x1||0), y:p.wy-(hit.y||hit.y1||0)};
       updatePropPanel();render();
     } else {
-      SEL=null;updatePropPanel();render();
+      SEL=null;wallInput='';camSelField=null;camSelInput='';updatePropPanel();render();
     }
     return;
   }
@@ -620,18 +1473,19 @@ cv.addEventListener('mousedown',e=>{
       wallPts.push({x:p.wx,y:p.wy});
   }
   else if(tool==='room'){
-    // Coordonnées toujours dans la feuille (>=0)
-    const cx2=Math.max(0,p.wx), cy2=Math.max(0,p.wy);
     if(!roomSt){
-      // Premier clic : coin de départ (seulement sur la feuille)
-      if(p.rwx>=0&&p.rwy>=0){ roomSt={x:cx2,y:cy2}; render(); }
+      roomSt={x:p.wx,y:p.wy};roomLockedX=null;roomInput='';render();
     } else {
-      // Deuxième clic : créer la pièce
-      saveHistory();
-      const dx=Math.abs(cx2-roomSt.x),dy=Math.abs(cy2-roomSt.y);
-      if(dx>G.sz&&dy>G.sz) addRoom(roomSt.x,roomSt.y,cx2,cy2);
-      roomSt=null; render();
+      // Clic 2 : crée toujours la pièce directement (les 2 dims viennent du curseur)
+      // Si une largeur avait été tapée (roomLockedX défini), elle est respectée
+      const{ex,ey}=getRoomPreviewDims();
+      const dw=Math.abs(ex-roomSt.x),dh=Math.abs(ey-roomSt.y);
+      if(dw>G.sz&&dh>G.sz){saveHistory();addRoom(roomSt.x,roomSt.y,ex,ey);}
+      roomSt=null;roomLockedX=null;roomInput='';render();
     }
+  }
+  else if(tool==='bspline'){
+    bsplinePts.push({x:p.wx,y:p.wy});render();
   }
   else if(tool==='door'||tool==='door2'){
     saveHistory();
@@ -648,16 +1502,62 @@ cv.addEventListener('mousedown',e=>{
   else if(tool==='camera'){
     if(!camSt){camSt={x:p.wx,y:p.wy};render();}
     else{
+      // Clic 2 : crée la caméra — distance = souris, angle = phase en cours
       saveHistory();
       const dx=p.rwx-camSt.x,dy=p.rwy-camSt.y;
-      cams.push({id:nid(),t:'cam',x:camSt.x,y:camSt.y,angle:Math.atan2(dy,dx),fov:G.camFov,num:cams.length+1});
-      camSt=null;SEL=null;render();
+      const dist=Math.max(50,Math.hypot(dx,dy));
+      // Angle de vue : phase2 = verrouillé, phase1 = tapé ou défaut
+      const cFov=camLockedFov!==null?camLockedFov
+        :(camInput?Math.min(360,Math.max(1,parseFloat(camInput.replace(',','.'))||G.camFov)):G.camFov);
+      // Portée : si phase2 avec saisie → saisie, sinon distance souris
+      const cRange=(camLockedFov!==null&&camInput)?Math.max(50,parseFloat(camInput.replace(',','.'))*100):dist;
+      cams.push({id:nid(),t:'cam',x:camSt.x,y:camSt.y,angle:Math.atan2(dy,dx),fov:cFov,fovL:cFov/2,fovR:cFov/2,range:cRange,num:cams.length+1});
+      camSt=null;camLockedFov=null;camInput='';camInputMode='angle';SEL=null;render();
     }
   }
   else if(tool==='label'){
     saveHistory();
     const txt=prompt('Texte :','Bureau');
     if(txt){lbls.push({id:nid(),t:'lbl',x:p.wx,y:p.wy,text:txt,sz:14});SEL=null;render();}
+  }
+  else if(tool==='furn'){
+    const def=FURN_DEFS[selectedFurnType]||FURN_DEFS.table;
+    let fname='';
+    if(selectedFurnType==='libre'){
+      const raw=prompt('Nom du meuble :','Élément');
+      if(raw===null) return; // annulé
+      fname=raw.trim()||'Élément';
+    }
+    saveHistory();
+    furnitures.push({id:nid(),t:'furn',ftype:selectedFurnType,x:p.rwx,y:p.rwy,fw:def.fw,fh:def.fh,angle:0,name:fname||undefined});
+    SEL=null;render();
+  }
+  else if(tool==='calibrate'){
+    if(!scalePt1){
+      scalePt1={x:p.rwx,y:p.rwy};
+      document.getElementById('stool').textContent='Calibration — cliquez le 2ème point';
+      render();
+    } else {
+      const dist=Math.hypot(p.rwx-scalePt1.x,p.rwy-scalePt1.y);
+      if(dist>5){
+        const raw=prompt('Distance réelle entre les 2 points (m) :','');
+        const meters=parseFloat((raw||'').replace(',','.'));
+        if(meters>0){
+          // 100 unités monde = 1m → distance réelle en unités monde
+          const realUnits=meters*100;
+          const k=realUnits/dist;
+          // Redimensionner le calque en gardant scalePt1 fixe
+          bgX=scalePt1.x-(scalePt1.x-bgX)*k;
+          bgY=scalePt1.y-(scalePt1.y-bgY)*k;
+          bgW*=k; bgH*=k;
+          const ratio=Math.round(100/k*100)/100;
+          document.getElementById('scalelbl').textContent=`Calque mis à l'échelle (×${k.toFixed(3)})`;
+          document.getElementById('stool').textContent=`Calque mis à l'échelle`;
+        }
+      }
+      scalePt1=null;
+      setTool('select');
+    }
   }
 });
 
@@ -685,19 +1585,178 @@ cv.addEventListener('mousemove',e=>{
     hoverPreview=null;
   }
 
+  // Drag handles caméra
+  if(resizingCam){
+    const{cam,type}=resizingCam;
+    const ddx=p.rwx-cam.x,ddy=p.rwy-cam.y;
+    if(type==='range'){
+      // Pointe du cône → ROTATION + PORTÉE simultanément
+      cam.angle=Math.atan2(ddy,ddx);
+      cam.range=Math.max(50,Math.hypot(ddx,ddy));
+    } else {
+      // Bords du cône → FOV indépendants (gauche et droite séparément)
+      const edgeAngle=Math.atan2(ddy,ddx);
+      if(type==='fov_l'){
+        // bord gauche = angle < cam.angle
+        let diff=cam.angle-edgeAngle;
+        while(diff>Math.PI)diff-=2*Math.PI;
+        while(diff<=-Math.PI)diff+=2*Math.PI;
+        cam.fovL=Math.max(1,Math.min(360,diff*180/Math.PI));
+        if(cam.fovR===undefined)cam.fovR=(cam.fov||70)/2;
+      } else {
+        // bord droit = angle > cam.angle
+        let diff=edgeAngle-cam.angle;
+        while(diff>Math.PI)diff-=2*Math.PI;
+        while(diff<=-Math.PI)diff+=2*Math.PI;
+        cam.fovR=Math.max(1,Math.min(360,diff*180/Math.PI));
+        if(cam.fovL===undefined)cam.fovL=(cam.fov||70)/2;
+      }
+      // Maintenir fov = total pour compat
+      cam.fov=(cam.fovL||35)+(cam.fovR||35);
+    }
+    render();return;
+  }
+  // Rotation meuble par poignée
+  if(rotatingFurn){
+    const f=rotatingFurn.furn;
+    f.angle=Math.atan2(p.rwy-f.y,p.rwx-f.x)+Math.PI/2;
+    render();return;
+  }
+  // Redimensionnement meuble par poignée
+  if(resizingFurnHandle){
+    const{furn:f,hi,origHw,origHh,initPfx,initPfy}=resizingFurnHandle;
+    const a=f.angle||0;
+    const MIN=G.sz*2;
+    // Signs : 0=TL(-1,-1) 1=T(0,-1) 2=TR(1,-1) 3=R(1,0)
+    //         4=BR(1,1) 5=B(0,1) 6=BL(-1,1) 7=L(-1,0)
+    const SIGNS=[[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]];
+    const [sx,sy]=SIGNS[hi];
+    // Point fixe ancré depuis le début du drag (stocké au mousedown)
+    const Pfx=initPfx, Pfy=initPfy;
+    // Vecteur Point-fixe→souris, ramené en espace local (dé-rotation)
+    const vwx=p.rwx-Pfx, vwy=p.rwy-Pfy;
+    const vlx= Math.cos(a)*vwx+Math.sin(a)*vwy;
+    const vly=-Math.sin(a)*vwx+Math.cos(a)*vwy;
+    if(hi%2===0){
+      // ── Coin : PROPORTIONNEL ──
+      // On projette la souris sur la diagonale originale (dir de la poignée tirée)
+      const d2=4*(origHw*origHw+origHh*origHh);
+      if(d2<0.01){render();return;}
+      const s=(vlx*2*sx*origHw+vly*2*sy*origHh)/d2;
+      const sc=Math.max(MIN/Math.sqrt(origHw*origHw+origHh*origHh)/2, s);
+      f.fw=sc*2*origHw; f.fh=sc*2*origHh;
+      // Nouveau centre = Pf + rotation(sc·sx·origHw, sc·sy·origHh)
+      f.x=Pfx+Math.cos(a)*(sc*sx*origHw)-Math.sin(a)*(sc*sy*origHh);
+      f.y=Pfy+Math.sin(a)*(sc*sx*origHw)+Math.cos(a)*(sc*sy*origHh);
+    } else if(sy!==0){
+      // ── Haut/bas : seul fh change, bord opposé ancré ──
+      const new_fh=Math.max(MIN, sy*vly);
+      f.fh=new_fh;
+      f.x=Pfx-Math.sin(a)*(sy*new_fh/2);
+      f.y=Pfy+Math.cos(a)*(sy*new_fh/2);
+    } else {
+      // ── Gauche/droite : seul fw change, bord opposé ancré ──
+      const new_fw=Math.max(MIN, sx*vlx);
+      f.fw=new_fw;
+      f.x=Pfx+Math.cos(a)*(sx*new_fw/2);
+      f.y=Pfy+Math.sin(a)*(sx*new_fw/2);
+    }
+    render();return;
+  }
+  // Courbe de mur par handle
+  if(resizingWallCurve){
+    const w=resizingWallCurve;
+    // ── Étape 1a : capturer t des portes/fenêtres sur ce mur ──
+    const dwParams=[...doors,...wins].map(dw=>{
+      const dcx=(dw.x1+dw.x2)/2,dcy=(dw.y1+dw.y2)/2;
+      let dist;
+      if(w.cx!==undefined) dist=d2bezQ(dcx,dcy,w.x1,w.y1,w.cx,w.cy,w.x2,w.y2);
+      else if(w.cx1!==undefined) dist=d2bezC(dcx,dcy,w.x1,w.y1,w.cx1,w.cy1,w.cx2,w.cy2,w.x2,w.y2);
+      else dist=d2seg(dcx,dcy,w.x1,w.y1,w.x2,w.y2);
+      if(dist>WALL_W+4) return null;
+      const pr=projOnWall(dcx,dcy,w);
+      return{dw,t:pr.t,hw:Math.hypot(dw.x2-dw.x1,dw.y2-dw.y1)/2};
+    }).filter(Boolean);
+    // ── Étape 1b : capturer t des murs accrochés au corps de la courbe ──
+    const wallSnaps=[];
+    walls.forEach(ow=>{
+      if(ow.id===w.id)return;
+      [[ow.x1,ow.y1,1],[ow.x2,ow.y2,2]].forEach(([ex,ey,ei])=>{
+        if(Math.hypot(ex-w.x1,ey-w.y1)<1||Math.hypot(ex-w.x2,ey-w.y2)<1)return;
+        let dist;
+        if(w.cx!==undefined) dist=d2bezQ(ex,ey,w.x1,w.y1,w.cx,w.cy,w.x2,w.y2);
+        else if(w.cx1!==undefined) dist=d2bezC(ex,ey,w.x1,w.y1,w.cx1,w.cy1,w.cx2,w.cy2,w.x2,w.y2);
+        else return;
+        if(dist<2){const pr=projOnWall(ex,ey,w);wallSnaps.push({ow,ei,t:pr.t});}
+      });
+    });
+
+    // ── Étape 2 : mettre à jour le CP bezier ──
+    w.cx=2*p.rwx-(w.x1+w.x2)/2;
+    w.cy=2*p.rwy-(w.y1+w.y2)/2;
+    delete w.cx1;delete w.cy1;delete w.cx2;delete w.cy2;
+
+    // ── Étape 3 : repositionner portes/fenêtres sur la nouvelle courbe ──
+    dwParams.forEach(({dw,t,hw})=>{
+      const tc=Math.max(0.1,Math.min(0.9,t)),mt=1-tc;
+      const x=mt*mt*w.x1+2*mt*tc*w.cx+tc*tc*w.x2;
+      const y=mt*mt*w.y1+2*mt*tc*w.cy+tc*tc*w.y2;
+      const tgx=2*(1-tc)*(w.cx-w.x1)+2*tc*(w.x2-w.cx);
+      const tgy=2*(1-tc)*(w.cy-w.y1)+2*tc*(w.y2-w.cy);
+      const tgl=Math.hypot(tgx,tgy)||1;
+      dw.x1=x-tgx/tgl*hw;dw.y1=y-tgy/tgl*hw;
+      dw.x2=x+tgx/tgl*hw;dw.y2=y+tgy/tgl*hw;
+    });
+    // ── Étape 4 : re-snap les murs accrochés au corps ──
+    wallSnaps.forEach(({ow,ei,t})=>{
+      const tc=Math.max(0.05,Math.min(0.95,t)),mt=1-tc;
+      const nx2=mt*mt*w.x1+2*mt*tc*w.cx+tc*tc*w.x2;
+      const ny2=mt*mt*w.y1+2*mt*tc*w.cy+tc*tc*w.y2;
+      if(ei===1){ow.x1=nx2;ow.y1=ny2;}else{ow.x2=nx2;ow.y2=ny2;}
+    });
+
+    autoRoomsDirty=true;render();return;
+  }
+  // Drag resize porte/fenêtre
+  if(resizingDoor){
+    const{el,movingEnd,ux,uy}=resizingDoor;
+    if(movingEnd===1){
+      // x1,y1 fixe → déplacer x2,y2
+      const t=Math.max(G.sz,(p.rwx-el.x1)*ux+(p.rwy-el.y1)*uy);
+      el.x2=el.x1+ux*t;el.y2=el.y1+uy*t;
+    } else {
+      // x2,y2 fixe → déplacer x1,y1 (direction inverse)
+      const t=Math.max(G.sz,(p.rwx-el.x2)*(-ux)+(p.rwy-el.y2)*(-uy));
+      el.x1=el.x2-ux*t;el.y1=el.y2-uy*t;
+    }
+    render();return;
+  }
   // Move selected element
   if(moving&&SEL){
-    rawDragX=p.rwx; rawDragY=p.rwy; // souris brute → utilisée dans moveEl pour snap absolu
-    const dx=p.rwx-moveSX,dy=p.rwy-moveSY;
+    rawDragX=p.wx; rawDragY=p.wy; // position aimantée → snap actif pendant le déplacement
+    const dx=p.wx-moveSX,dy=p.wy-moveSY;
     moveEl(SEL,dx,dy);
-    moveSX=p.rwx;moveSY=p.rwy;
+    moveSX=p.wx;moveSY=p.wy;
   }
   render();
 });
 
 cv.addEventListener('mouseup',e=>{
   if(panning){panning=false;cv.style.cursor=tool==='select'?'default':CURSOR_CROSS;return;}
-  if(moving){moving=false;}
+  if(resizingCam){resizingCam=null;render();return;}
+  if(rotatingFurn){rotatingFurn=null;render();return;}
+  if(resizingFurnHandle){resizingFurnHandle=null;render();return;}
+  if(resizingWallCurve){resizingWallCurve=null;autoRoomsDirty=true;render();return;}
+  if(resizingDoor){resizingDoor=null;render();return;}
+  if(moving){
+    moving=false;
+    cornerGuides=null;
+    if(SEL&&(SEL.t==='corner'||SEL.t==='wall')){
+      splitWallsAtJunctions();
+      deduplicateWalls();
+      render();
+    }
+  }
 });
 
 // Finalize wall segment on each click (when 2+ pts)
@@ -709,16 +1768,57 @@ cv.addEventListener('click',e=>{
     walls.push({id:nid(),t:'wall',x1:a.x,y1:a.y,x2:b.x,y2:b.y});
     splitWallsAtJunctions();
     deduplicateWalls();
-    wallPts=[b];render();
+    wallPts=[];render(); // 2-clic : mur terminé, on repart de zéro
   }
 });
 
 cv.addEventListener('dblclick',e=>{
+  if(tool==='bspline'&&bsplinePts.length>=2){finalizeBSpline(bsplinePts);bsplinePts=[];render();return;}
   if(tool==='wall'&&wallPts.length>0){wallPts=[];render();}
   if(SEL){
     if(SEL.t==='lbl'){const t=prompt('Texte :',SEL.text);if(t!==null){SEL.text=t;render();}}
     if(SEL.t==='cam'){const f=prompt('Angle de vue (°):',SEL.fov||70);if(f!==null){SEL.fov=+f;render();}}
-    if(SEL.t==='door'){SEL.opens*=-1;render();} // double-click = flip door direction
+    if(SEL.t==='door'){SEL.opens*=-1;render();}
+    if(SEL.t==='wall'&&(SEL.cx!==undefined||SEL.cx1!==undefined)){
+      // Vérifier si dblclic près du handle de courbure
+      let hx,hy;
+      if(SEL.cx!==undefined){const p2=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p2.x;hy=p2.y;}
+      else{hx=(SEL.x1+SEL.x2)/2;hy=(SEL.y1+SEL.y2)/2;}
+      const hs2=w2s(hx,hy);
+      const r2=cv.getBoundingClientRect();
+      if(Math.hypot(e.clientX-r2.left-hs2.x,e.clientY-r2.top-hs2.y)<14){
+        saveHistory();
+        // Capturer les portes/fenêtres sur ce mur courbé AVANT de le redresser
+        const dwOnWall=[...doors,...wins].filter(dw=>{
+          const dcx2=(dw.x1+dw.x2)/2,dcy2=(dw.y1+dw.y2)/2;
+          const dist=SEL.cx!==undefined
+            ?d2bezQ(dcx2,dcy2,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2)
+            :d2bezC(dcx2,dcy2,SEL.x1,SEL.y1,SEL.cx1,SEL.cy1,SEL.cx2,SEL.cy2,SEL.x2,SEL.y2);
+          return dist<(WALL_W+5);
+        });
+        // Redresser le mur
+        delete SEL.cx;delete SEL.cy;delete SEL.cx1;delete SEL.cy1;delete SEL.cx2;delete SEL.cy2;
+        // Reprojeter les portes/fenêtres sur le mur droit
+        dwOnWall.forEach(dw=>{
+          const dcx2=(dw.x1+dw.x2)/2,dcy2=(dw.y1+dw.y2)/2;
+          const hw=Math.hypot(dw.x2-dw.x1,dw.y2-dw.y1)/2;
+          const pr=projOnWall(dcx2,dcy2,SEL);
+          dw.x1=pr.x-pr.ux*hw;dw.y1=pr.y-pr.uy*hw;
+          dw.x2=pr.x+pr.ux*hw;dw.y2=pr.y+pr.uy*hw;
+        });
+        autoRoomsDirty=true;render();return;
+      }
+    }
+  }
+  // Double-clic sur une pièce auto-détectée → renommer
+  const r2=cv.getBoundingClientRect();
+  const dp=s2w(e.clientX-r2.left,e.clientY-r2.top);
+  for(const room of autoRooms){
+    if(Math.hypot(dp.x-room.cx,dp.y-room.cy)<G.sz*6){
+      const t=prompt('Nom de la pièce :',autoRoomLabels[room.key]||'');
+      if(t!==null){autoRoomLabels[room.key]=t;render();}
+      return;
+    }
   }
 });
 
@@ -737,16 +1837,145 @@ document.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if(k==='s')setTool('select');
   else if(k==='w')setTool('wall');
-  else if(k==='r')setTool('room');
+  else if(k==='r'&&!(SEL&&SEL.t==='furn'))setTool('room');
+  // R = rotation 90° si un meuble est sélectionné
+  else if(k==='r'&&SEL&&SEL.t==='furn'){saveHistory();SEL.angle=(SEL.angle||0)+Math.PI/2;render();}
+  else if(k==='m')toggleFurnPanel();
   else if(k==='p')setTool('door');
   else if(k==='d')setTool('door2');
   else if(k==='f')setTool('window');
   else if(k==='c')setTool('camera');
   else if(k==='t')setTool('label');
-  else if(k==='escape'){wallPts=[];roomSt=null;camSt=null;hoverPreview=null;SEL=null;updatePropPanel();render();}
-  else if((k==='delete'||k==='backspace')&&!e.target.value){e.preventDefault();deleteSelected();}
+  else if(k==='b')setTool('bspline');
+  else if(k==='escape'){
+    // Si un label caméra était actif → annuler la saisie sans déselectionner
+    if(camSelField){camSelField=null;camSelInput='';render();return;}
+    wallPts=[];roomSt=null;camSt=null;hoverPreview=null;SEL=null;bsplinePts=[];
+    wallInput='';roomLockedX=null;roomInput='';scalePt1=null;
+    camInput='';camInputMode='angle';camLockedFov=null;resizingCam=null;
+    camSelField=null;camSelInput='';
+    updatePropPanel();render();
+  }
+  // ── Backspace (ordre important : inputs avant delete) ──
+  else if(k==='backspace'&&camSelField){e.preventDefault();camSelInput=camSelInput.slice(0,-1);render();}
+  else if(k==='backspace'&&wallInput){e.preventDefault();wallInput=wallInput.slice(0,-1);render();}
+  else if(k==='backspace'&&tool==='room'&&roomSt&&roomInput){
+    e.preventDefault();roomInput=roomInput.slice(0,-1);render();
+  }
+  else if((k==='delete'||k==='backspace')&&!wallInput&&!roomInput&&!e.target.value){e.preventDefault();deleteSelected();}
   else if(k==='z'&&e.ctrlKey){e.preventDefault();undo();}
+  // B-Spline : Entrée ou retour arrière
+  else if(k==='enter'&&tool==='bspline'&&bsplinePts.length>=2){
+    finalizeBSpline(bsplinePts);bsplinePts=[];render();
+  }
+  else if(k==='backspace'&&tool==='bspline'&&bsplinePts.length>0){
+    e.preventDefault();bsplinePts.pop();render();
+  }
+  // ── Entrée caméra : phase1=verrouille angle → phase2, phase2=crée ──
+  else if(k==='enter'&&tool==='camera'&&camSt){
+    const dx=mx-camSt.x,dy=my-camSt.y;
+    const usedAngle=Math.atan2(dy,dx);
+    const mouseDist=Math.max(50,Math.hypot(dx,dy));
+    if(camLockedFov===null){
+      // Phase 1 : verrouiller l'angle de vue
+      if(camInput){
+        const v=parseFloat(camInput.replace(',','.'));
+        if(v>0){camLockedFov=Math.min(360,Math.max(1,v));camInput='';render();return;}
+      }
+      // Aucune saisie → créer immédiatement avec défaut
+      const cFov=G.camFov;
+      saveHistory();
+      cams.push({id:nid(),t:'cam',x:camSt.x,y:camSt.y,angle:usedAngle,fov:cFov,fovL:cFov/2,fovR:cFov/2,range:mouseDist,num:cams.length+1});
+      camSt=null;camLockedFov=null;camInput='';SEL=null;render();
+    } else {
+      // Phase 2 : créer avec portée (saisie ou souris)
+      const cFov=camLockedFov;
+      const cRange=camInput?Math.max(50,parseFloat(camInput.replace(',','.'))*100):mouseDist;
+      saveHistory();
+      cams.push({id:nid(),t:'cam',x:camSt.x,y:camSt.y,angle:usedAngle,fov:cFov,fovL:cFov/2,fovR:cFov/2,range:cRange,num:cams.length+1});
+      camSt=null;camLockedFov=null;camInput='';SEL=null;render();
+    }
+  }
+  // ── Entrée : appliquer valeur caméra sélectionnée ──
+  else if(k==='enter'&&camSelField&&SEL&&SEL.t==='cam'){
+    const v=parseFloat(camSelInput.replace(',','.'));
+    if(v>0){
+      saveHistory();
+      if(camSelField==='fov'){
+        SEL.fov=Math.min(360,Math.max(2,v));
+        SEL.fovL=SEL.fov/2; SEL.fovR=SEL.fov/2; // redistribuer symétriquement
+      } else {
+        SEL.range=Math.max(50,v*100); // saisie en mètres → unités monde (100u=1m)
+      }
+    }
+    camSelField=null;camSelInput='';render();
+  }
+  // ── Entrée : appliquer longueur mur (tracé ou sélection) ──
+  else if(k==='enter'&&wallInput){
+    const wu=parseFloat(wallInput.replace(',','.'))*1000/worldScale;
+    if(wu>0){
+      if(tool==='wall'&&wallPts.length>0){
+        const last=wallPts[wallPts.length-1];
+        const dx=mx-last.x,dy=my-last.y,d=Math.hypot(dx,dy)||1;
+        const ex=last.x+dx/d*wu,ey=last.y+dy/d*wu;
+        saveHistory();walls.push({id:nid(),t:'wall',x1:last.x,y1:last.y,x2:ex,y2:ey});
+        splitWallsAtJunctions();deduplicateWalls();wallPts=[];
+      } else if(SEL&&(SEL.t==='door'||SEL.t==='win')){
+        // Resize depuis le centre (symétrique)
+        const mcx=(SEL.x1+SEL.x2)/2,mcy=(SEL.y1+SEL.y2)/2;
+        const dx=SEL.x2-SEL.x1,dy=SEL.y2-SEL.y1,d=Math.hypot(dx,dy)||1;
+        const half=wu/2;
+        saveHistory();
+        SEL.x1=mcx-dx/d*half;SEL.y1=mcy-dy/d*half;
+        SEL.x2=mcx+dx/d*half;SEL.y2=mcy+dy/d*half;
+      } else if(SEL&&SEL.t==='wall'){
+        const dx=SEL.x2-SEL.x1,dy=SEL.y2-SEL.y1,d=Math.hypot(dx,dy)||1;
+        const ox2=SEL.x2,oy2=SEL.y2; // ancien endpoint mobile
+        saveHistory();
+        SEL.x2=SEL.x1+dx/d*wu; SEL.y2=SEL.y1+dy/d*wu;
+        // Déplacer les murs connectés à l'ancien x2,y2
+        const eps=1;
+        walls.forEach(w=>{
+          if(w.id===SEL.id)return;
+          if(Math.abs(w.x1-ox2)<eps&&Math.abs(w.y1-oy2)<eps){w.x1=SEL.x2;w.y1=SEL.y2;}
+          if(Math.abs(w.x2-ox2)<eps&&Math.abs(w.y2-oy2)<eps){w.x2=SEL.x2;w.y2=SEL.y2;}
+        });
+        splitWallsAtJunctions();deduplicateWalls();
+      }
+    }
+    wallInput='';render();
+  }
   else if(k==='enter'&&tool==='wall'&&wallPts.length>0){wallPts=[];render();}
+  // ── Entrée pièce : verrouille largeur (phase 1) ou crée la pièce (phase 2) ──
+  else if(k==='enter'&&tool==='room'&&roomSt){
+    const{ex,ey}=getRoomPreviewDims();
+    if(roomLockedX===null){
+      if(Math.abs(ex-roomSt.x)>G.sz){roomLockedX=ex;roomInput='';}
+    } else {
+      const dw=Math.abs(ex-roomSt.x),dh=Math.abs(ey-roomSt.y);
+      if(dw>G.sz&&dh>G.sz){saveHistory();addRoom(roomSt.x,roomSt.y,ex,ey);}
+      roomSt=null;roomLockedX=null;roomInput='';
+    }
+    render();
+  }
+  // ── Saisie chiffres pour label caméra sélectionnée ──
+  else if(/^[0-9.,]$/.test(e.key)&&camSelField&&SEL&&SEL.t==='cam'){
+    camSelInput+=e.key;render();
+  }
+  // ── Saisie chiffres/virgule/point ──
+  // Resize mur/porte/fenêtre : uniquement en mode select ou tracé de mur
+  else if(/^[0-9.,]$/.test(e.key)&&(
+    (tool==='wall'&&wallPts.length>0)||
+    (tool==='select'&&SEL&&(SEL.t==='wall'||SEL.t==='door'||SEL.t==='win'))
+  )){wallInput+=e.key;render();}
+  else if(/^[0-9.,]$/.test(e.key)&&tool==='room'&&roomSt){
+    roomInput+=e.key;render();
+  }
+  // Saisie caméra : chiffres → angle de vue
+  else if(tool==='camera'&&camSt){
+    if(/^[0-9.,]$/.test(e.key)){camInput+=e.key;render();}
+    else if(k==='backspace'){e.preventDefault();camInput=camInput.slice(0,-1);render();}
+  }
 });
 
 // ── Element operations ────────────────────────────────────
@@ -763,7 +1992,13 @@ function addRoom(x1,y1,x2,y2){
 
 function nearWall(wx,wy,maxD){
   let best=null,bd=maxD;
-  walls.forEach(w=>{const d=d2seg(wx,wy,w.x1,w.y1,w.x2,w.y2);if(d<bd){bd=d;best=w;}});
+  walls.forEach(w=>{
+    let d;
+    if(w.cx1!==undefined)d=d2bezC(wx,wy,w.x1,w.y1,w.cx1,w.cy1,w.cx2,w.cy2,w.x2,w.y2);
+    else if(w.cx!==undefined)d=d2bezQ(wx,wy,w.x1,w.y1,w.cx,w.cy,w.x2,w.y2);
+    else d=d2seg(wx,wy,w.x1,w.y1,w.x2,w.y2);
+    if(d<bd){bd=d;best=w;}
+  });
   return best;
 }
 function d2seg(px,py,x1,y1,x2,y2){
@@ -773,6 +2008,43 @@ function d2seg(px,py,x1,y1,x2,y2){
   return Math.hypot(px-x1-t*dx,py-y1-t*dy);
 }
 function projOnWall(wx,wy,w){
+  // Mur courbé quadratique
+  if(w.cx!==undefined){
+    let bestT=0,bestD=Infinity;
+    for(let i=0;i<=50;i++){
+      const t=i/50,mt=1-t;
+      const bx=mt*mt*w.x1+2*mt*t*w.cx+t*t*w.x2;
+      const by=mt*mt*w.y1+2*mt*t*w.cy+t*t*w.y2;
+      const d=Math.hypot(wx-bx,wy-by);if(d<bestD){bestD=d;bestT=t;}
+    }
+    const tc=Math.max(.1,Math.min(.9,bestT)),mt=1-tc;
+    const x=mt*mt*w.x1+2*mt*tc*w.cx+tc*tc*w.x2;
+    const y=mt*mt*w.y1+2*mt*tc*w.cy+tc*tc*w.y2;
+    const tgx=2*(1-tc)*(w.cx-w.x1)+2*tc*(w.x2-w.cx);
+    const tgy=2*(1-tc)*(w.cy-w.y1)+2*tc*(w.y2-w.cy);
+    const tgl=Math.hypot(tgx,tgy)||1;
+    const len=getWallSegs(w,16).reduce((s,[ax,ay,bx,by])=>s+Math.hypot(bx-ax,by-ay),0);
+    return{x,y,t:tc,ux:tgx/tgl,uy:tgy/tgl,len};
+  }
+  // Mur courbé cubique
+  if(w.cx1!==undefined){
+    let bestT=0,bestD=Infinity;
+    for(let i=0;i<=50;i++){
+      const t=i/50,mt=1-t;
+      const bx=mt*mt*mt*w.x1+3*mt*mt*t*w.cx1+3*mt*t*t*w.cx2+t*t*t*w.x2;
+      const by=mt*mt*mt*w.y1+3*mt*mt*t*w.cy1+3*mt*t*t*w.cy2+t*t*t*w.y2;
+      const d=Math.hypot(wx-bx,wy-by);if(d<bestD){bestD=d;bestT=t;}
+    }
+    const tc=Math.max(.1,Math.min(.9,bestT)),mt=1-tc;
+    const x=mt*mt*mt*w.x1+3*mt*mt*tc*w.cx1+3*mt*tc*tc*w.cx2+tc*tc*tc*w.x2;
+    const y=mt*mt*mt*w.y1+3*mt*mt*tc*w.cy1+3*mt*tc*tc*w.cy2+tc*tc*tc*w.y2;
+    const tgx=3*mt*mt*(w.cx1-w.x1)+6*mt*tc*(w.cx2-w.cx1)+3*tc*tc*(w.x2-w.cx2);
+    const tgy=3*mt*mt*(w.cy1-w.y1)+6*mt*tc*(w.cy2-w.cy1)+3*tc*tc*(w.y2-w.cy2);
+    const tgl=Math.hypot(tgx,tgy)||1;
+    const len=getWallSegs(w,16).reduce((s,[ax,ay,bx,by])=>s+Math.hypot(bx-ax,by-ay),0);
+    return{x,y,t:tc,ux:tgx/tgl,uy:tgy/tgl,len};
+  }
+  // Mur droit (comportement original)
   const dx=w.x2-w.x1,dy=w.y2-w.y1,len=Math.hypot(dx,dy);
   if(!len)return{x:w.x1,y:w.y1,t:0,ux:1,uy:0,len};
   const t=((wx-w.x1)*dx+(wy-w.y1)*dy)/(len*len);
@@ -806,7 +2078,22 @@ function hitTest(wx,wy){
   for(const l of[...lbls].reverse())if(Math.hypot(wx-l.x,wy-l.y)<20/zoom)return l;
   for(const d of[...doors].reverse())if(Math.hypot(wx-(d.x1+d.x2)/2,wy-(d.y1+d.y2)/2)<20/zoom)return d;
   for(const w of[...wins].reverse())if(Math.hypot(wx-(w.x1+w.x2)/2,wy-(w.y1+w.y2)/2)<20/zoom)return w;
-  for(const w of[...walls].reverse())if(d2seg(wx,wy,w.x1,w.y1,w.x2,w.y2)<8/zoom)return w;
+  // Meubles : test dans le bounding box (en tenant compte de la rotation)
+  for(const f of[...furnitures].reverse()){
+    const def=FURN_DEFS[f.ftype]||FURN_DEFS.table;
+    const hw=(f.fw||def.fw)/2, hh=(f.fh||def.fh)/2;
+    const a=f.angle||0, cos=Math.cos(-a), sin=Math.sin(-a);
+    const dx=wx-f.x, dy=wy-f.y;
+    const lx=cos*dx-sin*dy, ly=sin*dx+cos*dy;
+    if(Math.abs(lx)<=hw+4/zoom&&Math.abs(ly)<=hh+4/zoom)return f;
+  }
+  for(const w of[...walls].reverse()){
+    let dw;
+    if(w.cx1!==undefined)dw=d2bezC(wx,wy,w.x1,w.y1,w.cx1,w.cy1,w.cx2,w.cy2,w.x2,w.y2);
+    else if(w.cx!==undefined)dw=d2bezQ(wx,wy,w.x1,w.y1,w.cx,w.cy,w.x2,w.y2);
+    else dw=d2seg(wx,wy,w.x1,w.y1,w.x2,w.y2);
+    if(dw<8/zoom)return w;
+  }
   return null;
 }
 
@@ -820,19 +2107,172 @@ function makeCorner(x,y){
 // jamais depuis la position accumulée → plus de "collage" sur la grille.
 function moveEl(el,dx,dy){
   if(el.t==='corner'){
-    const ox=el.x,oy=el.y;
-    // Cible absolue depuis la souris (+ snap sur grille/coins si proche)
-    const nx=snp(rawDragX-dragOffset.x), ny=snp(rawDragY-dragOffset.y);
-    if(nx===ox&&ny===oy) return;
+    const ox=el.x, oy=el.y;
+    const origTx=rawDragX-dragOffset.x, origTy=rawDragY-dragOffset.y;
+    let tx=origTx, ty=origTy;
+    cornerGuides=[];
+
+    // Murs connectés à ce coin + leurs autres extrémités
+    const connWalls=walls.filter(w=>
+      (Math.abs(w.x1-ox)<0.5&&Math.abs(w.y1-oy)<0.5)||
+      (Math.abs(w.x2-ox)<0.5&&Math.abs(w.y2-oy)<0.5));
+    const ends=connWalls.map(w=>
+      (Math.abs(w.x1-ox)<0.5&&Math.abs(w.y1-oy)<0.5)?{x:w.x2,y:w.y2}:{x:w.x1,y:w.y1});
+
+    const MAGNET_R=G.snapRadius*3.5;
+    const GUIDE_R =G.snapRadius*3.0;
+
+    // ── 1. Magnétisme : accroche aux extrémités des AUTRES murs ──
+    let bestMag=MAGNET_R, snappedToEndpoint=false;
+    for(const w of walls){
+      if(connWalls.includes(w))continue;
+      for(const [ex,ey] of [[w.x1,w.y1],[w.x2,w.y2]]){
+        const d=Math.hypot(origTx-ex,origTy-ey);
+        if(d<bestMag){bestMag=d;tx=ex;ty=ey;snappedToEndpoint=true;}
+      }
+    }
+
+    // ── 2. Guides d'alignement et perpendiculaire ──
+    if(!snappedToEndpoint && ends.length>=1){
+      let bestG=GUIDE_R, gx=origTx, gy=origTy;
+
+      ends.forEach(A=>{
+        const dx=ox-A.x, dy=oy-A.y, len=Math.hypot(dx,dy);
+        if(len<1)return;
+        const ux=dx/len, uy=dy/len;
+        const t=(origTx-A.x)*ux+(origTy-A.y)*uy;
+        const px=A.x+t*ux, py=A.y+t*uy;
+        const d=Math.hypot(origTx-px,origTy-py);
+        const active=d<GUIDE_R;
+        if(d<bestG){bestG=d;gx=px;gy=py;}
+        const far=5000;
+        cornerGuides.push({x1:A.x-ux*far,y1:A.y-uy*far,x2:A.x+ux*far,y2:A.y+uy*far,active});
+      });
+
+      // Snap à l'intersection des 2 guides (coin perpendiculaire / droit)
+      if(ends.length>=2){
+        for(let i=0;i<ends.length-1;i++){
+          for(let j=i+1;j<ends.length;j++){
+            const A=ends[i], B=ends[j];
+            const dxA=ox-A.x,dyA=oy-A.y,lenA=Math.hypot(dxA,dyA);
+            const dxB=ox-B.x,dyB=oy-B.y,lenB=Math.hypot(dxB,dyB);
+            if(lenA<1||lenB<1)continue;
+            const uxA=dxA/lenA,uyA=dyA/lenA;
+            const uxB=dxB/lenB,uyB=dyB/lenB;
+            const det=uxA*uyB-uyA*uxB;
+            if(Math.abs(det)<0.02)continue;
+            const dx2=B.x-A.x,dy2=B.y-A.y;
+            const s=(dx2*uyB-dy2*uxB)/det;
+            const ix=A.x+s*uxA, iy=A.y+s*uyA;
+            const d=Math.hypot(origTx-ix,origTy-iy);
+            if(d<bestG){bestG=d;gx=ix;gy=iy;}
+          }
+        }
+      }
+
+      if(bestG<GUIDE_R){tx=gx;ty=gy;}
+    }
+
+    const nx=snp(tx), ny=snp(ty);
+    if(nx===ox&&ny===oy)return;
+    // Capturer t des portes/fenêtres ET des murs accrochés au corps des courbes AVANT déplacement
+    const dwParams=[];
+    const seenDw=new Set(); // hors de walls.forEach → pas de doublons inter-murs
+    // Murs ancrés sur le corps des murs courbés qui vont être déformés
+    const wallBodySnaps=[];
     walls.forEach(w=>{
-      if(Math.abs(w.x1-ox)<0.5&&Math.abs(w.y1-oy)<0.5){w.x1=nx;w.y1=ny;}
-      if(Math.abs(w.x2-ox)<0.5&&Math.abs(w.y2-oy)<0.5){w.x2=nx;w.y2=ny;}
+      const atP1=Math.abs(w.x1-ox)<0.5&&Math.abs(w.y1-oy)<0.5;
+      const atP2=Math.abs(w.x2-ox)<0.5&&Math.abs(w.y2-oy)<0.5;
+      if(!atP1&&!atP2)return;
+      if(Math.hypot(w.x2-w.x1,w.y2-w.y1)<1)return;
+      [...doors,...wins].forEach(dw=>{
+        if(seenDw.has(dw.id))return;
+        const dcx=(dw.x1+dw.x2)/2,dcy=(dw.y1+dw.y2)/2;
+        let dist;
+        if(w.cx!==undefined) dist=d2bezQ(dcx,dcy,w.x1,w.y1,w.cx,w.cy,w.x2,w.y2);
+        else if(w.cx1!==undefined) dist=d2bezC(dcx,dcy,w.x1,w.y1,w.cx1,w.cy1,w.cx2,w.cy2,w.x2,w.y2);
+        else dist=d2seg(dcx,dcy,w.x1,w.y1,w.x2,w.y2);
+        if(dist<WALL_W+6){
+          const pr=projOnWall(dcx,dcy,w);
+          seenDw.add(dw.id);
+          dwParams.push({dw,w,t:pr.t,hl:Math.hypot(dw.x2-dw.x1,dw.y2-dw.y1)/2});
+        }
+      });
+      // Murs dont un endpoint est sur le CORPS de ce mur courbé
+      if(w.cx!==undefined||w.cx1!==undefined){
+        walls.forEach(ow=>{
+          if(ow.id===w.id)return;
+          [[ow.x1,ow.y1,1],[ow.x2,ow.y2,2]].forEach(([ex,ey,ei])=>{
+            if(Math.hypot(ex-w.x1,ey-w.y1)<1||Math.hypot(ex-w.x2,ey-w.y2)<1)return;
+            const dist2=w.cx!==undefined
+              ?d2bezQ(ex,ey,w.x1,w.y1,w.cx,w.cy,w.x2,w.y2)
+              :d2bezC(ex,ey,w.x1,w.y1,w.cx1,w.cy1,w.cx2,w.cy2,w.x2,w.y2);
+            if(dist2<2){
+              const pr=projOnWall(ex,ey,w);
+              wallBodySnaps.push({ow,ei,t:pr.t,w});
+            }
+          });
+        });
+      }
+    });
+    // Déplacer les coins de murs
+    walls.forEach(w=>{
+      const d1=Math.abs(w.x1-ox)<0.5&&Math.abs(w.y1-oy)<0.5;
+      const d2=Math.abs(w.x2-ox)<0.5&&Math.abs(w.y2-oy)<0.5;
+      if(d1){w.x1=nx;w.y1=ny;if(w.cx!==undefined){w.cx+=nx-ox;w.cy+=ny-oy;}if(w.cx1!==undefined){w.cx1+=nx-ox;w.cy1+=ny-oy;}}
+      if(d2){w.x2=nx;w.y2=ny;if(w.cx!==undefined){w.cx+=nx-ox;w.cy+=ny-oy;}if(w.cx2!==undefined){w.cx2+=nx-ox;w.cy2+=ny-oy;}}
     });
     el.x=nx;el.y=ny;el.id=`c_${nx}_${ny}`;
+    // Re-snap les murs accrochés au corps des courbes (maintenant mises à jour)
+    wallBodySnaps.forEach(({ow,ei,t,w})=>{
+      const tc=Math.max(0.05,Math.min(0.95,t));
+      let nx2,ny2;
+      if(w.cx!==undefined){
+        const mt=1-tc;
+        nx2=mt*mt*w.x1+2*mt*tc*w.cx+tc*tc*w.x2;
+        ny2=mt*mt*w.y1+2*mt*tc*w.cy+tc*tc*w.y2;
+      } else if(w.cx1!==undefined){
+        const mt=1-tc;
+        nx2=mt*mt*mt*w.x1+3*mt*mt*tc*w.cx1+3*mt*tc*tc*w.cx2+tc*tc*tc*w.x2;
+        ny2=mt*mt*mt*w.y1+3*mt*mt*tc*w.cy1+3*mt*tc*tc*w.cy2+tc*tc*tc*w.y2;
+      } else return;
+      if(ei===1){ow.x1=nx2;ow.y1=ny2;}else{ow.x2=nx2;ow.y2=ny2;}
+    });
+    // Replacer les portes/fenêtres sur les murs mis à jour
+    // — évalue le bezier mis à jour à la position t stockée (courbe OU droit)
+    dwParams.forEach(({dw,w,t,hl})=>{
+      const tc=Math.max(0.1,Math.min(0.9,t));
+      if(w.cx!==undefined){
+        // Mur quadratique : évaluer position + tangente à tc
+        const mt=1-tc;
+        const x=mt*mt*w.x1+2*mt*tc*w.cx+tc*tc*w.x2;
+        const y=mt*mt*w.y1+2*mt*tc*w.cy+tc*tc*w.y2;
+        const tgx=2*(1-tc)*(w.cx-w.x1)+2*tc*(w.x2-w.cx);
+        const tgy=2*(1-tc)*(w.cy-w.y1)+2*tc*(w.y2-w.cy);
+        const tgl=Math.hypot(tgx,tgy)||1;
+        dw.x1=x-tgx/tgl*hl;dw.y1=y-tgy/tgl*hl;dw.x2=x+tgx/tgl*hl;dw.y2=y+tgy/tgl*hl;
+      } else if(w.cx1!==undefined){
+        // Mur cubique
+        const mt=1-tc;
+        const x=mt*mt*mt*w.x1+3*mt*mt*tc*w.cx1+3*mt*tc*tc*w.cx2+tc*tc*tc*w.x2;
+        const y=mt*mt*mt*w.y1+3*mt*mt*tc*w.cy1+3*mt*tc*tc*w.cy2+tc*tc*tc*w.y2;
+        const tgx=3*mt*mt*(w.cx1-w.x1)+6*mt*tc*(w.cx2-w.cx1)+3*tc*tc*(w.x2-w.cx2);
+        const tgy=3*mt*mt*(w.cy1-w.y1)+6*mt*tc*(w.cy2-w.cy1)+3*tc*tc*(w.y2-w.cy2);
+        const tgl=Math.hypot(tgx,tgy)||1;
+        dw.x1=x-tgx/tgl*hl;dw.y1=y-tgy/tgl*hl;dw.x2=x+tgx/tgl*hl;dw.y2=y+tgy/tgl*hl;
+      } else {
+        // Mur droit
+        const wdx=w.x2-w.x1,wdy=w.y2-w.y1,wlen=Math.hypot(wdx,wdy);
+        if(wlen<1)return;
+        const mx=w.x1+tc*wdx,my=w.y1+tc*wdy;
+        const ux=wdx/wlen,uy=wdy/wlen;
+        dw.x1=mx-ux*hl;dw.y1=my-uy*hl;dw.x2=mx+ux*hl;dw.y2=my+uy*hl;
+      }
+    });
     return;
   }
-  if(el.t==='cam'||el.t==='lbl'){
-    // Suivi exact de la souris (pas de snap sur grille pour cam/lbl)
+  if(el.t==='cam'||el.t==='lbl'||el.t==='furn'){
+    // Suivi exact de la souris (pas de snap sur grille)
     el.x=rawDragX-dragOffset.x;
     el.y=rawDragY-dragOffset.y;
     return;
@@ -850,58 +2290,85 @@ function moveEl(el,dx,dy){
     }
     return;
   }
-  // Mur : perpendiculaire + groupe colinéaire + étirement + portes/fenêtres
+  // Mur : mouvement LIBRE (toutes directions) + groupe colinéaire + connexions + portes
   if(el.t==='wall'){
-    const wdx=el.x2-el.x1, wdy=el.y2-el.y1;
-    const len=Math.hypot(wdx,wdy);
-    if(len<1) return;
-
-    let mdx=0, mdy=0;
-    if(Math.abs(wdy)<0.5){          // horizontal → Y absolu depuis souris
-      mdy=snp(rawDragY-dragOffset.y)-el.y1;
-    } else if(Math.abs(wdx)<0.5){   // vertical → X absolu depuis souris
-      mdx=snp(rawDragX-dragOffset.x)-el.x1;
-    } else {
-      const wnx=-wdy/len, wny=wdx/len, proj=dx*wnx+dy*wny;
-      mdx=proj*wnx; mdy=proj*wny;
-    }
+    // Mouvement absolu depuis la souris — plus de restriction perpendiculaire
+    const mdx=snp(rawDragX-dragOffset.x)-el.x1;
+    const mdy=snp(rawDragY-dragOffset.y)-el.y1;
     if(!mdx&&!mdy) return;
 
-    // Groupe : mur sélectionné + tous les murs colinéaires connectés
     const group=findCollinearGroup(el);
     const groupIds=new Set(group.map(w=>w.id));
 
-    // Positions anciennes pour vérifier portes/fenêtres
-    const oldPos=group.map(w=>({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2}));
+    // Anciennes positions (avec CPs) pour détecter portes et body-snaps
+    const oldPos=group.map(w=>({x1:w.x1,y1:w.y1,x2:w.x2,y2:w.y2,
+      cx:w.cx,cy:w.cy,cx1:w.cx1,cy1:w.cy1,cx2:w.cx2,cy2:w.cy2}));
 
-    // Endpoints anciens (dédupliqués) pour étirer les murs perpendiculaires
+    // Endpoints anciens dédupliqués pour étirer les murs connexes
     const ptSet=new Set(), oldPts=[];
     group.forEach(w=>{
       [`${Math.round(w.x1)},${Math.round(w.y1)}`,`${Math.round(w.x2)},${Math.round(w.y2)}`]
         .forEach((k,i)=>{if(!ptSet.has(k)){ptSet.add(k);oldPts.push(i===0?{x:w.x1,y:w.y1}:{x:w.x2,y:w.y2});}});
     });
 
-    // Déplacer tout le groupe
-    group.forEach(w=>{w.x1+=mdx;w.y1+=mdy;w.x2+=mdx;w.y2+=mdy;});
-
-    // Étirer les murs perpendiculaires reliés
-    walls.forEach(w=>{
-      if(groupIds.has(w.id)) return;
-      oldPts.forEach(p=>{
-        if(Math.abs(w.x1-p.x)<0.5&&Math.abs(w.y1-p.y)<0.5){w.x1+=mdx;w.y1+=mdy;}
-        if(Math.abs(w.x2-p.x)<0.5&&Math.abs(w.y2-p.y)<0.5){w.x2+=mdx;w.y2+=mdy;}
+    // Murs accrochés sur le CORPS des murs courbés du groupe (body-snaps)
+    const bodySnaps=[];
+    group.forEach(cw=>{
+      if(cw.cx===undefined&&cw.cx1===undefined)return;
+      walls.forEach(ow=>{
+        if(groupIds.has(ow.id))return;
+        [[ow.x1,ow.y1,1],[ow.x2,ow.y2,2]].forEach(([ex,ey,ei])=>{
+          if(Math.hypot(ex-cw.x1,ey-cw.y1)<1||Math.hypot(ex-cw.x2,ey-cw.y2)<1)return;
+          const d=cw.cx!==undefined
+            ?d2bezQ(ex,ey,cw.x1,cw.y1,cw.cx,cw.cy,cw.x2,cw.y2)
+            :d2bezC(ex,ey,cw.x1,cw.y1,cw.cx1,cw.cy1,cw.cx2,cw.cy2,cw.x2,cw.y2);
+          if(d<2)bodySnaps.push({ow,ei});
+        });
       });
     });
 
-    // Portes/fenêtres sur les murs du groupe
-    [...doors,...wins].forEach(dw=>{
-      const dcx=(dw.x1+dw.x2)/2, dcy=(dw.y1+dw.y2)/2;
-      for(const o of oldPos){
-        if(d2seg(dcx,dcy,o.x1,o.y1,o.x2,o.y2)<8){
-          dw.x1+=mdx;dw.y1+=mdy;dw.x2+=mdx;dw.y2+=mdy;break;
+    // Déplacer tout le groupe
+    group.forEach(w=>{
+      w.x1+=mdx;w.y1+=mdy;w.x2+=mdx;w.y2+=mdy;
+      if(w.cx!==undefined){w.cx+=mdx;w.cy+=mdy;}
+      if(w.cx1!==undefined){w.cx1+=mdx;w.cy1+=mdy;w.cx2+=mdx;w.cy2+=mdy;}
+    });
+
+    // Étirer les murs connexes aux extrémités du groupe
+    walls.forEach(w=>{
+      if(groupIds.has(w.id))return;
+      let cpMoved=false; // évite double-déplacement du CP quadratique
+      oldPts.forEach(p=>{
+        if(Math.abs(w.x1-p.x)<0.5&&Math.abs(w.y1-p.y)<0.5){
+          w.x1+=mdx;w.y1+=mdy;
+          if(w.cx!==undefined&&!cpMoved){w.cx+=mdx;w.cy+=mdy;cpMoved=true;}
+          if(w.cx1!==undefined){w.cx1+=mdx;w.cy1+=mdy;}
         }
+        if(Math.abs(w.x2-p.x)<0.5&&Math.abs(w.y2-p.y)<0.5){
+          w.x2+=mdx;w.y2+=mdy;
+          if(w.cx!==undefined&&!cpMoved){w.cx+=mdx;w.cy+=mdy;cpMoved=true;}
+          if(w.cx2!==undefined){w.cx2+=mdx;w.cy2+=mdy;}
+        }
+      });
+    });
+
+    // Déplacer les endpoints ancrés sur le corps des courbes (translation rigide)
+    bodySnaps.forEach(({ow,ei})=>{
+      if(ei===1){ow.x1+=mdx;ow.y1+=mdy;}else{ow.x2+=mdx;ow.y2+=mdy;}
+    });
+
+    // Portes/fenêtres sur les murs du groupe — détection courbe-aware
+    [...doors,...wins].forEach(dw=>{
+      const dcx=(dw.x1+dw.x2)/2,dcy=(dw.y1+dw.y2)/2;
+      for(const o of oldPos){
+        let dist;
+        if(o.cx!==undefined) dist=d2bezQ(dcx,dcy,o.x1,o.y1,o.cx,o.cy,o.x2,o.y2);
+        else if(o.cx1!==undefined) dist=d2bezC(dcx,dcy,o.x1,o.y1,o.cx1,o.cy1,o.cx2,o.cy2,o.x2,o.y2);
+        else dist=d2seg(dcx,dcy,o.x1,o.y1,o.x2,o.y2);
+        if(dist<WALL_W+4){dw.x1+=mdx;dw.y1+=mdy;dw.x2+=mdx;dw.y2+=mdy;break;}
       }
     });
+    autoRoomsDirty=true;
     return;
   }
 }
@@ -949,6 +2416,7 @@ function splitWallsAtJunctions(){
     outer:
     for(let i=0;i<walls.length;i++){
       const w=walls[i];
+      if(w.cx!==undefined||w.cx1!==undefined) continue; // skip curved
       const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;
       if(len2<1) continue;
       for(let j=0;j<walls.length;j++){
@@ -988,16 +2456,112 @@ function deduplicateWalls(){
     }
   }
   if(rem.size>0) walls=walls.filter((_,i)=>!rem.has(i));
+  autoRoomsDirty=true;
 }
 
 // ── Tools ────────────────────────────────────────────────
+// Calcule l'endpoint du preview pièce en tenant compte de la saisie
+// Calcule les dims du preview pièce selon la phase active
+// Phase 1 (roomLockedX===null) : largeur suit curseur ou saisie, hauteur suit curseur
+// Phase 2 (roomLockedX===valeur) : largeur verrouillée, hauteur suit curseur ou saisie
+function getRoomPreviewDims(){
+  const signX=snp(mx)>=roomSt.x?1:-1, signY=snp(my)>=roomSt.y?1:-1;
+  const parsed=parseFloat(roomInput.replace(',','.'));
+  let ex, ey;
+  if(roomLockedX===null){
+    // Phase 1 : définir la largeur
+    ex=(parsed>0)?roomSt.x+signX*(parsed*1000/worldScale):snp(mx);
+    ey=snp(my);
+  } else {
+    // Phase 2 : définir la hauteur (largeur verrouillée)
+    ex=roomLockedX;
+    ey=(parsed>0)?roomSt.y+signY*(parsed*1000/worldScale):snp(my);
+  }
+  const worldW=Math.abs(ex-roomSt.x)*worldScale;
+  const worldH=Math.abs(ey-roomSt.y)*worldScale;
+  // Active = mesure auto (bleu), normal = saisie utilisateur
+  const wActive = roomLockedX===null && !roomInput;
+  const hActive = roomLockedX!==null && !roomInput;
+  const wLabel=(roomLockedX===null&&roomInput)?roomInput+' m':formatDist(worldW);
+  const hLabel=(roomLockedX!==null&&roomInput)?roomInput+' m':formatDist(worldH);
+  return{ex,ey,wLabel,hLabel,wActive,hActive};
+}
+
+function finalizeBSpline(pts){
+  if(pts.length<2)return;
+  saveHistory();
+  const alpha=1/6;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    const cp1x=p1.x+(p2.x-p0.x)*alpha,cp1y=p1.y+(p2.y-p0.y)*alpha;
+    const cp2x=p2.x-(p3.x-p1.x)*alpha,cp2y=p2.y-(p3.y-p1.y)*alpha;
+    walls.push({id:nid(),t:'wall',x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,cx1:cp1x,cy1:cp1y,cx2:cp2x,cy2:cp2y});
+  }
+  autoRoomsDirty=true;
+}
+// ── Panneau meubles ───────────────────────────────────────
+function buildFurnPanel(){
+  const grid=document.getElementById('furn-grid');
+  grid.innerHTML='';
+  // SVG icons simples pour chaque type
+  const icons={
+    table:  `<svg viewBox="0 0 28 22"><rect x="4" y="7" width="20" height="10" rx="1" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><rect x="4" y="3" width="20" height="5" rx="1" fill="rgba(160,195,220,.7)" stroke="#567a9a" stroke-width="1.2"/></svg>`,
+    chaise: `<svg viewBox="0 0 22 22"><rect x="4" y="6" width="14" height="12" rx="1" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><rect x="4" y="4" width="14" height="5" fill="rgba(140,175,210,.8)" stroke="#567a9a" stroke-width="1.2"/></svg>`,
+    canape: `<svg viewBox="0 0 28 18"><rect x="2" y="5" width="24" height="11" rx="2" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><rect x="2" y="3" width="24" height="5" rx="1" fill="rgba(140,175,210,.8)" stroke="#567a9a" stroke-width="1"/></svg>`,
+    lit:    `<svg viewBox="0 0 18 28"><rect x="2" y="2" width="14" height="24" rx="1" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><rect x="2" y="2" width="14" height="5" fill="rgba(140,175,210,.8)" stroke="#567a9a" stroke-width="1"/><ellipse cx="7" cy="10" rx="3" ry="2" fill="white" stroke="#9ab" stroke-width="1"/><ellipse cx="13" cy="10" rx="3" ry="2" fill="white" stroke="#9ab" stroke-width="1"/></svg>`,
+    bureau: `<svg viewBox="0 0 28 18"><rect x="2" y="4" width="24" height="13" rx="1" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><line x1="18" y1="4" x2="18" y2="17" stroke="#567a9a" stroke-width="1"/><line x1="18" y1="10" x2="26" y2="10" stroke="#567a9a" stroke-width="1"/></svg>`,
+    armoire:`<svg viewBox="0 0 24 20"><rect x="2" y="2" width="20" height="16" rx="1" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><line x1="12" y1="2" x2="12" y2="18" stroke="#567a9a" stroke-width="1"/><circle cx="9.5" cy="10" r="1.2" fill="#567a9a"/><circle cx="14.5" cy="10" r="1.2" fill="#567a9a"/></svg>`,
+    bain:   `<svg viewBox="0 0 28 16"><rect x="2" y="2" width="24" height="12" rx="6" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><circle cx="22" cy="8" r="2" fill="#567a9a"/></svg>`,
+    wc:     `<svg viewBox="0 0 18 24"><rect x="2" y="2" width="8" height="9" rx="1" fill="rgba(160,195,220,.8)" stroke="#567a9a" stroke-width="1.2"/><path d="M2 11 Q16 11 16 17 Q16 22 9 22 Q2 22 2 17 Z" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/></svg>`,
+    evier:  `<svg viewBox="0 0 22 22"><rect x="2" y="2" width="18" height="18" rx="1" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><ellipse cx="11" cy="11" rx="6" ry="6" fill="none" stroke="#567a9a" stroke-width="1.2"/><circle cx="11" cy="15" r="1.5" fill="#567a9a"/></svg>`,
+    douche: `<svg viewBox="0 0 22 22"><rect x="2" y="2" width="18" height="18" rx="1" fill="rgba(200,220,240,.8)" stroke="#567a9a" stroke-width="1.5"/><path d="M20 20 A16 16 0 0 0 4 4" fill="none" stroke="#567a9a" stroke-width="1.5"/><circle cx="13" cy="13" r="2" fill="#567a9a"/></svg>`,
+    libre:  `<svg viewBox="0 0 22 22"><rect x="2" y="2" width="18" height="18" rx="1" fill="rgba(200,220,240,.4)" stroke="#567a9a" stroke-width="1.5" stroke-dasharray="4 3"/><text x="11" y="14" text-anchor="middle" font-size="9" fill="#567a9a">?</text></svg>`,
+  };
+  for(const [k,def] of Object.entries(FURN_DEFS)){
+    // Séparateur avant "Libre"
+    if(k==='libre'){
+      const sep=document.createElement('div');
+      sep.style='grid-column:1/-1;height:1px;background:#1e4070;margin:3px 0';
+      grid.appendChild(sep);
+    }
+    const btn=document.createElement('button');
+    btn.className='fbtn'+(k===selectedFurnType?' fsel':'');
+    const note=k==='libre'?' (nom libre)':'';
+    btn.innerHTML=(icons[k]||'')+`<span>${def.label}${note}</span>`;
+    btn.title=k==='libre'?'Meuble personnalisé — saisie du nom à la pose':def.label;
+    btn.onclick=()=>{
+      selectedFurnType=k;
+      document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('fsel'));
+      btn.classList.add('fsel');
+      setTool('furn');
+    };
+    grid.appendChild(btn);
+  }
+}
+function toggleFurnPanel(){
+  const panel=document.getElementById('furn-panel');
+  const visible=panel.style.display!=='none';
+  if(visible){panel.style.display='none';if(tool==='furn')setTool('select');}
+  else{buildFurnPanel();panel.style.display='block';setTool('furn');}
+}
+
 function setTool(t){
+  // Annuler tout ce qui était en cours dans l'ancien mode (déselectionner aussi)
   tool=t;wallPts=[];roomSt=null;camSt=null;hoverPreview=null;
+  wallInput='';roomLockedX=null;roomInput='';bsplinePts=[];
+  SEL=null;
+  camInput='';camInputMode='angle';camLockedFov=null;camSelField=null;camSelInput='';
+  resizingCam=null;resizingDoor=null;resizingFurnHandle=null;rotatingFurn=null;
+  // Fermer le panneau meubles si on change d'outil (sauf furn)
+  if(t!=='furn') document.getElementById('furn-panel').style.display='none';
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
   const btn=document.getElementById('btn-'+t);if(btn)btn.classList.add('active');
-  const names={select:'Sélection',wall:'Mur (clic-clic, Entrée=fin)',room:'Pièce (clic coin 1 → clic coin 2)',
+  if(t==='furn') document.getElementById('btn-furn').classList.add('active');
+  const names={select:'Sélection',wall:'Mur (clic 1 = départ · clic 2 = fin)',room:'Pièce (clic coin 1 → clic coin 2)',
     door:'Porte P (clic sur mur)',door2:'Double porte DP (clic sur mur)',
-    window:'Fenêtre F (clic sur mur)',camera:'Caméra (2 clics: position+direction)',label:'Étiquette texte'};
+    window:'Fenêtre F (clic sur mur)',camera:'Caméra (2 clics: position+direction)',label:'Étiquette texte',
+    calibrate:'Calibration — cliquez le 1er point',bspline:'Courbe B-Spline (clic=point, Entrée=finaliser)',
+    furn:'Meuble (clic=poser, R=tourner 90°)'};
   document.getElementById('ptool').textContent=names[t]||t;
   document.getElementById('stool').textContent='Outil: '+(names[t]||t);
   cv.style.cursor=t==='select'?'default':CURSOR_CROSS;
@@ -1008,22 +2572,52 @@ function deleteSelected(){
   if(!SEL)return;
   saveHistory();
   if(SEL.t==='corner'){
-    // Supprimer tous les murs connectés à ce coin
     const {x,y}=SEL;
+    // Supprimer aussi les portes/fenêtres sur les murs du coin
+    const toDelete=walls.filter(w=>
+      (Math.abs(w.x1-x)<0.5&&Math.abs(w.y1-y)<0.5)||
+      (Math.abs(w.x2-x)<0.5&&Math.abs(w.y2-y)<0.5));
+    toDelete.forEach(dw=>{
+      doors=doors.filter(d=>{
+        const dcx=(d.x1+d.x2)/2,dcy=(d.y1+d.y2)/2;
+        const n=nearWall(dcx,dcy,30);return!(n&&n.id===dw.id);
+      });
+      wins=wins.filter(w=>{
+        const wcx=(w.x1+w.x2)/2,wcy=(w.y1+w.y2)/2;
+        const n=nearWall(wcx,wcy,30);return!(n&&n.id===dw.id);
+      });
+    });
     walls=walls.filter(w=>!(
       (Math.abs(w.x1-x)<0.5&&Math.abs(w.y1-y)<0.5)||
       (Math.abs(w.x2-x)<0.5&&Math.abs(w.y2-y)<0.5)
     ));
-    SEL=null;updatePropPanel();render();return;
+    autoRoomsDirty=true;SEL=null;updatePropPanel();render();return;
   }
   const id=SEL.id;
+  const wasWall=SEL.t==='wall';
+  // Si on supprime un mur → supprimer les portes/fenêtres dessus d'abord
+  if(wasWall){
+    doors=doors.filter(d=>{
+      const dcx=(d.x1+d.x2)/2,dcy=(d.y1+d.y2)/2;
+      const n=nearWall(dcx,dcy,30);return!(n&&n.id===id);
+    });
+    wins=wins.filter(w=>{
+      const wcx=(w.x1+w.x2)/2,wcy=(w.y1+w.y2)/2;
+      const n=nearWall(wcx,wcy,30);return!(n&&n.id===id);
+    });
+  }
   walls=walls.filter(w=>w.id!==id);doors=doors.filter(d=>d.id!==id);
-  wins=wins.filter(w=>w.id!==id);cams=cams.filter(c=>c.id!==id);lbls=lbls.filter(l=>l.id!==id);
+  wins=wins.filter(w=>w.id!==id);cams=cams.filter(c=>c.id!==id);
+  lbls=lbls.filter(l=>l.id!==id);furnitures=furnitures.filter(f=>f.id!==id);
+  if(wasWall)autoRoomsDirty=true;
   SEL=null;updatePropPanel();render();
 }
 function clearAll(){
   if(!confirm('Effacer tout le plan ?'))return;
-  walls=[];doors=[];wins=[];cams=[];lbls=[];rooms=[];SEL=null;wallPts=[];render();
+  walls=[];doors=[];wins=[];cams=[];lbls=[];rooms=[];furnitures=[];
+  autoRooms=[];autoRoomLabels={};autoRoomsDirty=true;
+  SEL=null;wallPts=[];bsplinePts=[];
+  updatePropPanel();render();
 }
 
 // ── Properties panel ─────────────────────────────────────
@@ -1031,7 +2625,7 @@ function updatePropPanel(){
   const p=document.getElementById('ppanel');
   if(!SEL){p.innerHTML='<div class="pl">Cliquez un élément</div>';return;}
   const e=SEL;
-  const tname={wall:'MUR',door:'PORTE',win:'FENÊTRE',cam:'CAMÉRA',lbl:'TEXTE',corner:'COIN DE MUR'};
+  const tname={wall:'MUR',door:'PORTE',win:'FENÊTRE',cam:'CAMÉRA',lbl:'TEXTE',corner:'COIN DE MUR',furn:'MEUBLE'};
   let h=`<div style="font-weight:600;color:white;margin-bottom:6px">${tname[e.t]||e.t}</div>`;
   if(e.t==='corner'){
     // Compter les murs connectés
@@ -1046,12 +2640,14 @@ function updatePropPanel(){
     <div class="pl" style="margin-top:4px;color:#8ab">Dbl-clic sur la porte = inverser</div>`;
   }
   if(e.t==='cam'){
-    h+=`<div class="pl">Angle vue: <span id="cfovl">${e.fov||70}°</span></div>
-    <input type="range" class="pi" min="20" max="360" value="${e.fov||70}" style="padding:0"
-      oninput="SEL.fov=+this.value;document.getElementById('cfovl').textContent=this.value+'°';render()">
-    <div class="pl" style="margin-top:6px">Rotation</div>
-    <input type="range" class="pi" min="-314" max="314" value="${Math.round((e.angle||0)*100)}" style="padding:0"
-      oninput="SEL.angle=+this.value/100;render()">`;
+    const rng=((e.range||800)/100).toFixed(1);
+    const ang=((e.angle||0)*180/Math.PI).toFixed(1);
+    h+=`<div class="pl" style="line-height:1.8">
+      Angle vue: <b>${e.fov||70}°</b><br>
+      Portée: <b>${rng} m</b><br>
+      Direction: <b>${ang}°</b><br>
+      <span style="color:#7eb3ff;font-size:10px">Cliquer les labels sur le plan<br>pour modifier les valeurs.<br>Glisser la pointe → rotation.<br>Glisser les bords → angle vue.</span>
+    </div>`;
   }
   if(e.t==='lbl'){
     h+=`<div class="pl">Texte</div>
@@ -1060,6 +2656,24 @@ function updatePropPanel(){
     <input type="range" class="pi" min="8" max="40" value="${e.sz||14}" style="padding:0"
       oninput="SEL.sz=+this.value;render()">`;
   }
+  if(e.t==='furn'){
+    const def=FURN_DEFS[e.ftype]||FURN_DEFS.table;
+    const deg=Math.round(((e.angle||0)*180/Math.PI+360)%360);
+    const wm=Math.round((e.fw||def.fw)*worldScale/10)/100;
+    const hm=Math.round((e.fh||def.fh)*worldScale/10)/100;
+    const displayName=e.name||def.label;
+    h+=`<div class="pl" style="line-height:1.8">${displayName}<br>
+      Taille: <b>${wm} m × ${hm} m</b><br>
+      Rotation: <b>${deg}°</b><br>
+      <span style="color:#7eb3ff;font-size:10px">Glisser poignée = redimensionner<br>R = tourner 90° · Glisser = déplacer</span></div>`;
+    if(e.ftype==='libre'){
+      h+=`<div class="pl" style="margin-top:5px">Nom</div>
+      <input class="pi" value="${e.name||''}" oninput="SEL.name=this.value.trim()||'Élément';render()">`;
+    }
+    h+=`<div style="display:flex;gap:4px;margin-top:4px">
+    <button class="pi" style="cursor:pointer;padding:4px;flex:1" onclick="saveHistory();SEL.angle=((SEL.angle||0)+Math.PI/2);render()">↻ 90°</button>
+    <button class="pi" style="cursor:pointer;padding:4px;flex:1" onclick="saveHistory();SEL.angle=0;render()">⊙ 0°</button></div>`;
+  }
   h+=`<button class="pi" style="margin-top:8px;background:#e94560;cursor:pointer" onclick="deleteSelected()">🗑 Supprimer</button>`;
   p.innerHTML=h;
 }
@@ -1067,12 +2681,13 @@ function updatePropPanel(){
 // ── History ──────────────────────────────────────────────
 function saveHistory(){
   if(history.length>30)history.shift();
-  history.push(JSON.stringify({walls,doors,wins,cams,lbls,rooms}));
+  history.push(JSON.stringify({walls,doors,wins,cams,lbls,rooms,furnitures}));
 }
 function undo(){
   if(!history.length)return;
   const s=JSON.parse(history.pop());
   walls=s.walls;doors=s.doors;wins=s.wins;cams=s.cams;lbls=s.lbls;rooms=s.rooms||[];
+  furnitures=s.furnitures||[];
   SEL=null;updatePropPanel();render();
 }
 
@@ -1171,7 +2786,7 @@ function exportPDF(){
 
 // ── Sauvegarde / Chargement projet ───────────────────────
 async function saveProject(){
-  const data={version:1,walls,doors,wins,cams,lbls,rooms,panX,panY,zoom,uid};
+  const data={version:1,walls,doors,wins,cams,lbls,rooms,furnitures,panX,panY,zoom,uid};
   const json=JSON.stringify(data,null,2);
   if(window.showSaveFilePicker){
     try{
@@ -1208,6 +2823,7 @@ function loadProject(input){
       cams=data.cams||[];
       lbls=data.lbls||[];
       rooms=data.rooms||[];
+      furnitures=data.furnitures||[];
       panX=data.panX??120;
       panY=data.panY??200;
       zoom=data.zoom??1;
