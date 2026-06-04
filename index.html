@@ -42,7 +42,7 @@ canvas{display:block}
     <button class="hbtn" onclick="clearAll()">🗑 Effacer</button>
     <button class="hbtn" onclick="saveProject()" style="background:#1a6030;border-color:#2a9050">💾 Sauvegarder</button>
     <button class="hbtn" onclick="document.getElementById('loadfile').click()" style="background:#0f3460;border-color:#2a6090">📂 Ouvrir</button>
-    <input type="file" id="loadfile" accept=".planvideosurveillance" style="display:none" onchange="loadProject(this)">
+    <input type="file" id="loadfile" accept=".pvs" style="display:none" onchange="loadProject(this)">
     <button class="hbtn" onclick="exportPNG()">🖼 PNG</button>
     <button class="hbtn" onclick="exportPDF()">📄 PDF</button>
   </div>
@@ -53,7 +53,7 @@ canvas{display:block}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-4 7z" fill="currentColor"/></svg>Sél.
     </button>
     <div class="tsep"></div>
-    <button class="tbtn" id="btn-wall" onclick="setTool('wall')" title="Mur (W)">
+    <button class="tbtn" id="btn-wall" onclick="toggleWallPanel()" title="Mur (W)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="9" x2="3" y2="15"/><line x1="21" y1="9" x2="21" y2="15"/></svg>Mur
     </button>
     <button class="tbtn" id="btn-room" onclick="setTool('room')" title="Pièce rectangle (R)">
@@ -73,15 +73,15 @@ canvas{display:block}
     <button class="tbtn" id="btn-camera" onclick="setTool('camera')" title="Caméra (C)">
       <svg viewBox="0 0 24 24" stroke="#e94560" stroke-width="2" fill="none"><rect x="2" y="7" width="13" height="10" rx="2" fill="rgba(233,69,96,.2)"/><polygon points="15,10 22,7 22,17 15,14" fill="rgba(233,69,96,.2)"/></svg>Caméra
     </button>
-    <button class="tbtn" id="btn-bspline" onclick="setTool('bspline')" title="Courbe B-Spline (B)">
-      <svg viewBox="0 0 24 24" stroke="#3a9fff" stroke-width="2.2" fill="none"><path d="M3 17 C7 17 7 7 12 7 S17 17 21 7" stroke-linecap="round"/></svg>Courbe
-    </button>
     <button class="tbtn" id="btn-label" onclick="setTool('label')" title="Étiquette (T)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 6h16M4 12h10M4 18h6"/></svg>Texte
     </button>
     <div class="tsep"></div>
     <button class="tbtn" id="btn-furn" onclick="toggleFurnPanel()" title="Meubles (M)">
       <svg viewBox="0 0 24 24" stroke="#c8a86b" stroke-width="2" fill="none"><rect x="3" y="11" width="18" height="8" rx="2" fill="rgba(200,168,107,.15)"/><line x1="5" y1="11" x2="5" y2="7"/><line x1="19" y1="11" x2="19" y2="7"/><line x1="5" y1="7" x2="19" y2="7"/></svg>Meubles
+    </button>
+    <button class="tbtn" id="btn-rue" onclick="toggleRuePanel()" title="Rue (U)">
+      <svg viewBox="0 0 24 24" stroke="#7ac87a" stroke-width="2" fill="none"><line x1="3" y1="8" x2="21" y2="8" stroke-dasharray="4,2"/><line x1="3" y1="16" x2="21" y2="16" stroke-dasharray="4,2"/></svg>Rue
     </button>
     <div class="tsep"></div>
     <button class="tbtn" id="btn-bgimg" onclick="document.getElementById('bginput').click()" title="Charger image de fond">
@@ -91,6 +91,32 @@ canvas{display:block}
     <button class="tbtn" id="btn-calibrate" onclick="setTool('calibrate')" title="Calibrer l'échelle (2 points)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="9" x2="2" y2="15"/><line x1="22" y1="9" x2="22" y2="15"/><line x1="12" y1="10" x2="12" y2="14"/></svg>Échelle
     </button>
+  </div>
+
+  <!-- Panneau type de mur -->
+  <div id="wall-panel" style="display:none;position:absolute;left:66px;top:0;z-index:100;background:#16213e;border:1px solid #3a6090;border-radius:0 8px 8px 0;padding:10px 8px;width:175px;box-shadow:4px 4px 12px rgba(0,0,0,.5)">
+    <div style="color:#7eb3ff;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Type de mur</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="fbtn" id="wbtn-droit" onclick="selectWallType('wall')">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none" width="28" height="22"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="9" x2="3" y2="15"/><line x1="21" y1="9" x2="21" y2="15"/></svg>Mur droit
+      </button>
+      <button class="fbtn" id="wbtn-courbe" onclick="selectWallType('bspline')">
+        <svg viewBox="0 0 24 24" stroke="#3a9fff" stroke-width="2.2" fill="none" width="28" height="22"><path d="M3 17 C7 17 7 7 12 7 S17 17 21 7" stroke-linecap="round"/></svg>Mur courbé
+      </button>
+    </div>
+  </div>
+
+  <!-- Panneau type de rue -->
+  <div id="rue-panel" style="display:none;position:absolute;left:66px;top:0;z-index:100;background:#16213e;border:1px solid #3a6090;border-radius:0 8px 8px 0;padding:10px 8px;width:175px;box-shadow:4px 4px 12px rgba(0,0,0,.5)">
+    <div style="color:#7ac87a;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Type de rue</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="fbtn" id="rbtn-droite" onclick="selectRueType('droite')">
+        <svg viewBox="0 0 24 24" stroke="#7ac87a" stroke-width="2" fill="none" width="28" height="22"><line x1="3" y1="8" x2="21" y2="8" stroke-dasharray="4,2"/><line x1="3" y1="16" x2="21" y2="16" stroke-dasharray="4,2"/></svg>Rue droite
+      </button>
+      <button class="fbtn" id="rbtn-courbe" onclick="selectRueType('courbe')">
+        <svg viewBox="0 0 24 24" stroke="#7ac87a" stroke-width="2" fill="none" width="28" height="22"><path d="M3 8 C8 4 16 12 21 8" stroke-dasharray="4,2" fill="none"/><path d="M3 16 C8 12 16 20 21 16" stroke-dasharray="4,2" fill="none"/></svg>Rue courbée
+      </button>
+    </div>
   </div>
 
   <!-- Panneau sélection meubles -->
@@ -228,6 +254,16 @@ let resizingWallCurve=null; // mur en cours de courbure par le handle
 let rotatingFurn=null;     // meuble en rotation par drag sur poignée orange
 let resizingFurnHandle=null; // {furn, hi} — hi=index dans les 8 poignées
 let bsplinePts=[];          // points posés pendant l'outil B-Spline
+let rues=[];               // liste des rues créées
+let rueSt=null;            // {x,y} = premier point de la rue en cours
+let rueInput='';           // saisie en cours (largeur puis longueur)
+let rueLockedW=null;       // null=phase saisie largeur, valeur=largeur verrouillée
+let rueWidth=300;          // largeur par défaut (3 m à l'échelle par défaut)
+let selectedRueType='droite'; // 'droite'|'courbe'
+let rueAngleSnap=null;     // snap angulaire pendant le tracé
+let resizingRueWidth=null;    // {rue, midX, midY, rnx, rny} — drag pour régler la largeur
+let resizingRueEndpoint=null; // {rue, end:1|2} — drag pour allonger/raccourcir
+let rueBsplinePts=[];          // points B-Spline rue en cours de tracé
 // Calque de fond
 let bgImage=null, bgOpacity=0.4;
 let bgX=0, bgY=0, bgW=3000, bgH=2200; // position et taille en coordonnées monde
@@ -261,29 +297,78 @@ let snapIndicatorType=null; // 'corner' | 'wall' | 'grid'
 function snapToCorner(wx,wy){
   const R=G.snapRadius;
 
-  // 1. Coin de mur existant (priorité max, seuil légèrement plus grand)
+  // 1. Extrémités de murs ET de rues (priorité max)
   const epT=R*1.4;
   for(const w of walls){
     if(Math.hypot(wx-w.x1,wy-w.y1)<epT){snapIndicatorType='corner';return{x:w.x1,y:w.y1,snapped:true};}
     if(Math.hypot(wx-w.x2,wy-w.y2)<epT){snapIndicatorType='corner';return{x:w.x2,y:w.y2,snapped:true};}
   }
+  for(const r of rues){
+    const re1=r.pts?r.pts[0]:{x:r.x1,y:r.y1};
+    const re2=r.pts?r.pts[r.pts.length-1]:{x:r.x2,y:r.y2};
+    if(Math.hypot(wx-re1.x,wy-re1.y)<epT){snapIndicatorType='corner';return{x:re1.x,y:re1.y,snapped:true};}
+    if(Math.hypot(wx-re2.x,wy-re2.y)<epT){snapIndicatorType='corner';return{x:re2.x,y:re2.y,snapped:true};}
+  }
 
-  // 2. Sur le corps d'un mur existant — suit la courbe pour les murs arrondis
+  // 2. Corps des murs (projeter sur l'axe) + corps des rues (snap sur les BANDES, pas l'axe)
   let bestD=R, bestPx=null, bestPy=null;
   for(const w of walls){
     if(w.cx!==undefined||w.cx1!==undefined){
-      // Mur courbé : projeter sur la courbe bezier réelle
       const pr=projOnWall(wx,wy,w);
       const d=Math.hypot(wx-pr.x,wy-pr.y);
       if(d<bestD){bestD=d;bestPx=pr.x;bestPy=pr.y;}
     } else {
-      // Mur droit : projection standard sur le segment
       const dx=w.x2-w.x1,dy=w.y2-w.y1,len2=dx*dx+dy*dy;
       if(len2<1) continue;
       const t=Math.max(0,Math.min(1,((wx-w.x1)*dx+(wy-w.y1)*dy)/len2));
       const px=w.x1+t*dx, py=w.y1+t*dy;
       const d=Math.hypot(wx-px,wy-py);
       if(d<bestD){bestD=d;bestPx=px;bestPy=py;}
+    }
+  }
+  // Corps des rues — magnétisme sur les BANDES (±hw de l'axe)
+  const RUE_SNAP=R*2; // rayon plus grand pour les bords de rue
+  for(const r of rues){
+    const hw=(r.width||300)/2;
+    if(r.pts&&r.pts.length>=2){
+      const s=sampleCatmullRom(r.pts,60);
+      for(let i=0;i<s.length;i++){
+        const prev=i>0?s[i-1]:s[Math.min(i+1,s.length-1)];
+        const next=i<s.length-1?s[i+1]:s[Math.max(0,i-1)];
+        const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
+        const bnx=-tgy/tgl,bny=tgx/tgl;
+        for(const sign of[1,-1]){
+          const bx=s[i].x+bnx*hw*sign,by=s[i].y+bny*hw*sign;
+          const d=Math.hypot(wx-bx,wy-by);
+          if(d<bestD&&d<RUE_SNAP){bestD=d;bestPx=bx;bestPy=by;}
+        }
+      }
+    } else if(r.cx!==undefined){
+      for(let i=0;i<=40;i++){
+        const t=i/40,mt=1-t;
+        const bx0=mt*mt*r.x1+2*mt*t*r.cx+t*t*r.x2;
+        const by0=mt*mt*r.y1+2*mt*t*r.cy+t*t*r.y2;
+        const tgx=2*(1-t)*(r.cx-r.x1)+2*t*(r.x2-r.cx);
+        const tgy=2*(1-t)*(r.cy-r.y1)+2*t*(r.y2-r.cy);
+        const tgl=Math.hypot(tgx,tgy)||1;
+        const bnx=-tgy/tgl,bny=tgx/tgl;
+        for(const sign of[1,-1]){
+          const bx=bx0+bnx*hw*sign,by=by0+bny*hw*sign;
+          const d=Math.hypot(wx-bx,wy-by);
+          if(d<bestD&&d<RUE_SNAP){bestD=d;bestPx=bx;bestPy=by;}
+        }
+      }
+    } else {
+      const rlen=Math.hypot(r.x2-r.x1,r.y2-r.y1)||1;
+      const rddx=(r.x2-r.x1)/rlen,rddy=(r.y2-r.y1)/rlen;
+      const rnx=-rddy,rny=rddx;
+      const t=Math.max(0.02,Math.min(0.98,((wx-r.x1)*rddx+(wy-r.y1)*rddy)/rlen));
+      const px=r.x1+t*rddx*rlen,py=r.y1+t*rddy*rlen;
+      for(const sign of[1,-1]){
+        const bx=px+rnx*hw*sign,by=py+rny*hw*sign;
+        const d=Math.hypot(wx-bx,wy-by);
+        if(d<bestD&&d<RUE_SNAP){bestD=d;bestPx=bx;bestPy=by;}
+      }
     }
   }
   if(bestPx!==null){snapIndicatorType='wall';return{x:bestPx,y:bestPy,snapped:true};}
@@ -390,8 +475,13 @@ function render(){
     const lbl=wallInput?wallInput+' m':formatDist(Math.hypot(SEL.x2-SEL.x1,SEL.y2-SEL.y1)*worldScale);
     drawDimLine(s.x,s.y,e.x,e.y,lbl,!wallInput);
   }
-  // Handle de courbure du mur sélectionné (diamant orange au milieu)
-  if(SEL&&SEL.t==='wall'&&tool==='select'){
+  // Prévisualisation rue en cours de tracé
+  if(tool==='rue'){
+    if(selectedRueType==='courbe'&&rueBsplinePts.length>0)drawRueBsplinePreview();
+    else if(rueSt)drawRuePreview();
+  }
+  // Handle de courbure du mur OU de la rue sélectionné(e) (diamant orange au milieu)
+  if(SEL&&(SEL.t==='wall'||SEL.t==='rue')&&!SEL.pts&&tool==='select'){
     let hx,hy;
     if(SEL.cx!==undefined){
       const p=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p.x;hy=p.y;
@@ -412,6 +502,7 @@ function render(){
         drawDimLine(s.x,s.y,e.x,e.y,formatDist(Math.hypot(w.x2-w.x1,w.y2-w.y1)*worldScale),true);
       });
   }
+  rues.forEach(r=>drawRue(r,!!(SEL&&SEL.id===r.id)));
   wins.forEach(w=>drawWin(w));
   doors.forEach(d=>drawDoor(d));
   cams.forEach(c=>drawCam(c));
@@ -1208,6 +1299,39 @@ function catmullRomPath(pts){
     cx.bezierCurveTo(cp1s.x,cp1s.y,cp2s.x,cp2s.y,p2s.x,p2s.y);
   }
 }
+// Échantillonner N points sur une Catmull-Rom (espace monde)
+function sampleCatmullRom(pts,N){
+  if(!pts||pts.length<2)return pts?pts.slice():[];
+  const result=[];const alpha=1/6;const segs=pts.length-1;
+  const sps=Math.max(4,Math.ceil(N/segs));
+  for(let i=0;i<segs;i++){
+    const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    const cp1x=p1.x+(p2.x-p0.x)*alpha,cp1y=p1.y+(p2.y-p0.y)*alpha;
+    const cp2x=p2.x-(p3.x-p1.x)*alpha,cp2y=p2.y-(p3.y-p1.y)*alpha;
+    for(let s=(i===0?0:1);s<=sps;s++){
+      const t=s/sps,mt=1-t;
+      result.push({x:mt*mt*mt*p1.x+3*mt*mt*t*cp1x+3*mt*t*t*cp2x+t*t*t*p2.x,
+                   y:mt*mt*mt*p1.y+3*mt*mt*t*cp1y+3*mt*t*t*cp2y+t*t*t*p2.y});
+    }
+  }
+  return result;
+}
+// Distance point → rue pts (Catmull-Rom sampled)
+function d2ruePts(wx,wy,r){
+  if(!r.pts||r.pts.length<2)return Infinity;
+  const s=sampleCatmullRom(r.pts,40);
+  let m=Infinity;
+  for(let i=1;i<s.length;i++)m=Math.min(m,d2seg(wx,wy,s[i-1].x,s[i-1].y,s[i].x,s[i].y));
+  return m;
+}
+// Normale et point au param t d'une rue pts-based (approx via sampling)
+function midInfoRuePts(r){
+  const s=sampleCatmullRom(r.pts,40);if(!s.length)return null;
+  const mi=Math.floor(s.length/2);
+  const prev=mi>0?s[mi-1]:s[0],next=mi<s.length-1?s[mi+1]:s[s.length-1];
+  const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
+  return{x:s[mi].x,y:s[mi].y,nx:-tgy/tgl,ny:tgx/tgl,sampled:s};
+}
 // Polygone de visibilité de la caméra (cône bloqué par les murs)
 // fovL et fovR = demi-angles en DEGRÉS (peuvent être différents → cône asymétrique)
 function computeVisiPoly(wx,wy,angle,fovL,fovR,range){
@@ -1367,10 +1491,50 @@ cv.addEventListener('mousedown',e=>{
 
   // ── SÉLECTION : uniquement en mode "select" ──
   if(tool==='select'){
-    // Courbe de mur : clic sur le handle diamant
-    if(SEL&&SEL.t==='wall'){
+    // Handles de largeur d'une rue sélectionnée
+    if(SEL&&SEL.t==='rue'){
+      const hw=(SEL.width||300)/2;
+      let rmx,rmy,rnxr,rnyr;
+      if(SEL.pts){
+        const info=midInfoRuePts(SEL);
+        if(info){rmx=info.x;rmy=info.y;rnxr=info.nx;rnyr=info.ny;}
+      } else {
+        const{x1,y1,x2,y2}=SEL;
+        const rlen=Math.hypot(x2-x1,y2-y1)||1;
+        const rddx=(x2-x1)/rlen,rddy=(y2-y1)/rlen;
+        rmx=(x1+x2)/2;rmy=(y1+y2)/2;rnxr=-rddy;rnyr=rddx;
+        if(SEL.cx!==undefined){
+          const t=0.5,mt=0.5;
+          rmx=mt*mt*x1+2*mt*t*SEL.cx+t*t*x2;rmy=mt*mt*y1+2*mt*t*SEL.cy+t*t*y2;
+          const tgx=2*(1-t)*(SEL.cx-x1)+2*t*(x2-SEL.cx);
+          const tgy=2*(1-t)*(SEL.cy-y1)+2*t*(y2-SEL.cy);
+          const tgl=Math.hypot(tgx,tgy)||1;rnxr=-tgy/tgl;rnyr=tgx/tgl;
+        }
+      }
+      if(rmx!==undefined){
+        for(const sign of[1,-1]){
+          const wp=w2s(rmx+rnxr*hw*sign,rmy+rnyr*hw*sign);
+          if(Math.hypot(p.sx-wp.x,p.sy-wp.y)<10){
+            saveHistory();resizingRueWidth={rue:SEL,midX:rmx,midY:rmy,rnx:rnxr,rny:rnyr};return;
+          }
+        }
+      }
+      // Handles d'extrémité (orange)
+      if(SEL.pts){
+        const ep1=w2s(SEL.pts[0].x,SEL.pts[0].y);
+        const ep2=w2s(SEL.pts[SEL.pts.length-1].x,SEL.pts[SEL.pts.length-1].y);
+        if(Math.hypot(p.sx-ep1.x,p.sy-ep1.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:1};return;}
+        if(Math.hypot(p.sx-ep2.x,p.sy-ep2.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:2};return;}
+      } else {
+        const ep1=w2s(SEL.x1,SEL.y1),ep2=w2s(SEL.x2,SEL.y2);
+        if(Math.hypot(p.sx-ep1.x,p.sy-ep1.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:1};return;}
+        if(Math.hypot(p.sx-ep2.x,p.sy-ep2.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:2};return;}
+      }
+    }
+    // Courbe de mur ou de rue non-pts : clic sur le handle diamant
+    if(SEL&&(SEL.t==='wall'||SEL.t==='rue')&&!SEL.pts){
       let hx,hy;
-      if(SEL.cx!==undefined){const p=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p.x;hy=p.y;}
+      if(SEL.cx!==undefined){const p2=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p2.x;hy=p2.y;}
       else if(SEL.cx1!==undefined){const t2=0.5,mt2=0.5;hx=mt2*mt2*mt2*SEL.x1+3*mt2*mt2*t2*SEL.cx1+3*mt2*t2*t2*SEL.cx2+t2*t2*t2*SEL.x2;hy=mt2*mt2*mt2*SEL.y1+3*mt2*mt2*t2*SEL.cy1+3*mt2*t2*t2*SEL.cy2+t2*t2*t2*SEL.y2;}
       else{hx=(SEL.x1+SEL.x2)/2;hy=(SEL.y1+SEL.y2)/2;}
       const hs=w2s(hx,hy);
@@ -1457,6 +1621,7 @@ cv.addEventListener('mousedown',e=>{
       // Offset : souris aimantée − position de référence de l'élément
       if(hit.t==='wall')       dragOffset={x:p.wx-hit.x1, y:p.wy-hit.y1};
       else if(hit.t==='corner')dragOffset={x:p.wx-hit.x,  y:p.wy-hit.y};
+      else if(hit.t==='door'||hit.t==='win') dragOffset={x:p.wx-(hit.x1+hit.x2)/2, y:p.wy-(hit.y1+hit.y2)/2};
       else                     dragOffset={x:p.wx-(hit.x||hit.x1||0), y:p.wy-(hit.y||hit.y1||0)};
       updatePropPanel();render();
     } else {
@@ -1532,6 +1697,38 @@ cv.addEventListener('mousedown',e=>{
     furnitures.push({id:nid(),t:'furn',ftype:selectedFurnType,x:p.rwx,y:p.rwy,fw:def.fw,fh:def.fh,angle:0,name:fname||undefined});
     SEL=null;render();
   }
+  else if(tool==='rue'){
+    if(selectedRueType==='courbe'){
+      // Mode B-Spline : chaque clic ajoute un point
+      if(rueBsplinePts.length===0&&rueInput){
+        const v=parseFloat(rueInput.replace(',','.'));
+        if(v>0){rueLockedW=v*1000/worldScale;rueWidth=rueLockedW;}
+        rueInput='';
+      }
+      rueBsplinePts.push({x:p.wx,y:p.wy});
+      render();
+    } else {
+      // Mode droite : 2 clics
+      if(!rueSt){
+        rueSt={x:p.wx,y:p.wy};
+        if(rueInput){
+          const v=parseFloat(rueInput.replace(',','.'));
+          if(v>0){rueLockedW=v*1000/worldScale;rueWidth=rueLockedW;}
+          rueInput='';
+        }
+        render();
+      } else {
+        const ex=mx,ey=my;
+        if(Math.hypot(ex-rueSt.x,ey-rueSt.y)<G.sz) return;
+        const w=getRueWidth();
+        saveHistory();
+        const nr={id:nid(),t:'rue',x1:rueSt.x,y1:rueSt.y,x2:ex,y2:ey,width:w};
+        rues.push(nr);
+        rueSt=null;rueInput='';rueLockedW=null;rueAngleSnap=null;
+        render();
+      }
+    }
+  }
   else if(tool==='calibrate'){
     if(!scalePt1){
       scalePt1={x:p.rwx,y:p.rwy};
@@ -1572,8 +1769,19 @@ cv.addEventListener('mousemove',e=>{
     const as=angleSnapWall(last.x,last.y,p.wx,p.wy);
     if(as){mx=as.x;my=as.y;wallAngleSnap=as;}
     else wallAngleSnap=null;
+  } else if(tool==='rue'&&rueSt){
+    // Snap angulaire pour la rue droite
+    const as=angleSnapWall(rueSt.x,rueSt.y,p.wx,p.wy);
+    if(as){mx=as.x;my=as.y;rueAngleSnap=as;}
+    else{rueAngleSnap=null;}
+  } else if(tool==='rue'&&selectedRueType==='courbe'&&rueBsplinePts.length>0){
+    // Snap angulaire depuis le dernier point B-Spline
+    const last=rueBsplinePts[rueBsplinePts.length-1];
+    const as=angleSnapWall(last.x,last.y,p.wx,p.wy);
+    if(as){mx=as.x;my=as.y;rueAngleSnap=as;}
+    else rueAngleSnap=null;
   } else {
-    wallAngleSnap=null;
+    wallAngleSnap=null;rueAngleSnap=null;
   }
   document.getElementById('spos').textContent=`X:${Math.round(p.rwx/G.sz*20)}cm Y:${Math.round(p.rwy/G.sz*20)}cm`;
 
@@ -1717,6 +1925,26 @@ cv.addEventListener('mousemove',e=>{
 
     autoRoomsDirty=true;render();return;
   }
+  // Resize largeur d'une rue
+  if(resizingRueWidth){
+    const{rue,midX,midY,rnx,rny}=resizingRueWidth;
+    const proj=(p.rwx-midX)*rnx+(p.rwy-midY)*rny;
+    rue.width=Math.max(G.sz*2,Math.abs(proj)*2);
+    render();return;
+  }
+  // Resize longueur d'une rue (déplacer un endpoint)
+  if(resizingRueEndpoint){
+    const{rue,end}=resizingRueEndpoint;
+    if(rue.pts){
+      if(end===1)rue.pts[0]={x:p.wx,y:p.wy};
+      else rue.pts[rue.pts.length-1]={x:p.wx,y:p.wy};
+    } else {
+      if(end===1){rue.x1=p.wx;rue.y1=p.wy;}
+      else{rue.x2=p.wx;rue.y2=p.wy;}
+      delete rue.cx;delete rue.cy;
+    }
+    render();return;
+  }
   // Drag resize porte/fenêtre
   if(resizingDoor){
     const{el,movingEnd,ux,uy}=resizingDoor;
@@ -1746,6 +1974,8 @@ cv.addEventListener('mouseup',e=>{
   if(resizingCam){resizingCam=null;render();return;}
   if(rotatingFurn){rotatingFurn=null;render();return;}
   if(resizingFurnHandle){resizingFurnHandle=null;render();return;}
+  if(resizingRueWidth){resizingRueWidth=null;render();return;}
+  if(resizingRueEndpoint){resizingRueEndpoint=null;render();return;}
   if(resizingWallCurve){resizingWallCurve=null;autoRoomsDirty=true;render();return;}
   if(resizingDoor){resizingDoor=null;render();return;}
   if(moving){
@@ -1774,6 +2004,7 @@ cv.addEventListener('click',e=>{
 
 cv.addEventListener('dblclick',e=>{
   if(tool==='bspline'&&bsplinePts.length>=2){finalizeBSpline(bsplinePts);bsplinePts=[];render();return;}
+  if(tool==='rue'&&selectedRueType==='courbe'&&rueBsplinePts.length>=2){finalizeRueBspline();return;}
   if(tool==='wall'&&wallPts.length>0){wallPts=[];render();}
   if(SEL){
     if(SEL.t==='lbl'){const t=prompt('Texte :',SEL.text);if(t!==null){SEL.text=t;render();}}
@@ -1846,11 +2077,13 @@ document.addEventListener('keydown',e=>{
   else if(k==='f')setTool('window');
   else if(k==='c')setTool('camera');
   else if(k==='t')setTool('label');
-  else if(k==='b')setTool('bspline');
+  else if(k==='b')toggleWallPanel();
+  else if(k==='u')toggleRuePanel();
   else if(k==='escape'){
-    // Si un label caméra était actif → annuler la saisie sans déselectionner
     if(camSelField){camSelField=null;camSelInput='';render();return;}
     wallPts=[];roomSt=null;camSt=null;hoverPreview=null;SEL=null;bsplinePts=[];
+    rueSt=null;rueInput='';rueLockedW=null;rueAngleSnap=null;rueBsplinePts=[];
+    resizingRueWidth=null;resizingRueEndpoint=null;
     wallInput='';roomLockedX=null;roomInput='';scalePt1=null;
     camInput='';camInputMode='angle';camLockedFov=null;resizingCam=null;
     camSelField=null;camSelInput='';
@@ -1862,14 +2095,22 @@ document.addEventListener('keydown',e=>{
   else if(k==='backspace'&&tool==='room'&&roomSt&&roomInput){
     e.preventDefault();roomInput=roomInput.slice(0,-1);render();
   }
-  else if((k==='delete'||k==='backspace')&&!wallInput&&!roomInput&&!e.target.value){e.preventDefault();deleteSelected();}
+  else if(k==='backspace'&&tool==='rue'&&selectedRueType==='courbe'&&rueBsplinePts.length>0&&!rueInput){
+    e.preventDefault();rueBsplinePts.pop();render();
+  }
+  else if(k==='backspace'&&tool==='rue'&&rueInput){e.preventDefault();rueInput=rueInput.slice(0,-1);render();}
+  else if((k==='delete'||k==='backspace')&&!wallInput&&!roomInput&&!rueInput&&!e.target.value){e.preventDefault();deleteSelected();}
   else if(k==='z'&&e.ctrlKey){e.preventDefault();undo();}
-  // B-Spline : Entrée ou retour arrière
+  // B-Spline mur : Entrée ou retour arrière
   else if(k==='enter'&&tool==='bspline'&&bsplinePts.length>=2){
     finalizeBSpline(bsplinePts);bsplinePts=[];render();
   }
   else if(k==='backspace'&&tool==='bspline'&&bsplinePts.length>0){
     e.preventDefault();bsplinePts.pop();render();
+  }
+  // B-Spline rue : Entrée finalise
+  else if(k==='enter'&&tool==='rue'&&selectedRueType==='courbe'&&rueBsplinePts.length>=2){
+    finalizeRueBspline();
   }
   // ── Entrée caméra : phase1=verrouille angle → phase2, phase2=crée ──
   else if(k==='enter'&&tool==='camera'&&camSt){
@@ -1958,6 +2199,34 @@ document.addEventListener('keydown',e=>{
     }
     render();
   }
+  // ── Entrée rue : verrouille la largeur (phase 1 → 2) ou crée la rue (phase 2) ──
+  else if(k==='enter'&&tool==='rue'){
+    if(rueSt){
+      if(rueLockedW===null){
+        // Phase 1→2 : verrouiller la largeur
+        if(rueInput){const v=parseFloat(rueInput.replace(',','.'));if(v>0){rueLockedW=v*1000/worldScale;rueWidth=rueLockedW;}}
+        else rueLockedW=rueWidth;
+        rueInput='';render();
+      } else {
+        // Phase 2 : si longueur tapée, créer la rue dans la direction actuelle
+        if(rueInput){
+          const v=parseFloat(rueInput.replace(',','.'));
+          if(v>0){
+            const len=v*1000/worldScale;
+            const ddx=mx-rueSt.x,ddy=my-rueSt.y,d=Math.hypot(ddx,ddy)||1;
+            const ex=rueSt.x+ddx/d*len,ey=rueSt.y+ddy/d*len;
+            saveHistory();
+            rues.push({id:nid(),t:'rue',x1:rueSt.x,y1:rueSt.y,x2:ex,y2:ey,width:rueLockedW});
+            rueSt=null;rueInput='';rueLockedW=null;rueAngleSnap=null;render();
+          }
+        }
+      }
+    } else {
+      // Pas encore de point de départ : juste verrouiller la largeur
+      if(rueInput){const v=parseFloat(rueInput.replace(',','.'));if(v>0){rueLockedW=v*1000/worldScale;rueWidth=rueLockedW;}}
+      rueInput='';render();
+    }
+  }
   // ── Saisie chiffres pour label caméra sélectionnée ──
   else if(/^[0-9.,]$/.test(e.key)&&camSelField&&SEL&&SEL.t==='cam'){
     camSelInput+=e.key;render();
@@ -1970,6 +2239,10 @@ document.addEventListener('keydown',e=>{
   )){wallInput+=e.key;render();}
   else if(/^[0-9.,]$/.test(e.key)&&tool==='room'&&roomSt){
     roomInput+=e.key;render();
+  }
+  // Rue : chiffres → largeur (phase 1) ou longueur (phase 2)
+  else if(/^[0-9.,]$/.test(e.key)&&tool==='rue'){
+    rueInput+=e.key;render();
   }
   // Saisie caméra : chiffres → angle de vue
   else if(tool==='camera'&&camSt){
@@ -2086,6 +2359,13 @@ function hitTest(wx,wy){
     const dx=wx-f.x, dy=wy-f.y;
     const lx=cos*dx-sin*dy, ly=sin*dx+cos*dy;
     if(Math.abs(lx)<=hw+4/zoom&&Math.abs(ly)<=hh+4/zoom)return f;
+  }
+  // Rues : clic dans la bande (±width/2 autour de l'axe)
+  for(const r of[...rues].reverse()){
+    const d=r.pts?d2ruePts(wx,wy,r)
+      :r.cx!==undefined?d2bezQ(wx,wy,r.x1,r.y1,r.cx,r.cy,r.x2,r.y2)
+      :d2seg(wx,wy,r.x1,r.y1,r.x2,r.y2);
+    if(d<(r.width||300)/2+8/zoom)return r;
   }
   for(const w of[...walls].reverse()){
     let dw;
@@ -2271,6 +2551,23 @@ function moveEl(el,dx,dy){
     });
     return;
   }
+  if(el.t==='rue'){
+    if(el.pts){el.pts=el.pts.map(p=>({x:p.x+dx,y:p.y+dy}));return;}
+    const ox1=el.x1,oy1=el.y1,ox2=el.x2,oy2=el.y2;
+    el.x1+=dx;el.y1+=dy;el.x2+=dx;el.y2+=dy;
+    if(el.cx!==undefined){el.cx+=dx;el.cy+=dy;}
+    // Déplacer les extrémités des rues connectées (partageant un endpoint)
+    const eps=1.5;
+    for(const r2 of rues){
+      if(r2.id===el.id)continue;
+      if(r2.pts)continue; // ne pas chaîner les rues pts
+      if(Math.hypot(r2.x1-ox1,r2.y1-oy1)<eps){r2.x1+=dx;r2.y1+=dy;delete r2.cx;delete r2.cy;}
+      else if(Math.hypot(r2.x1-ox2,r2.y1-oy2)<eps){r2.x1+=dx;r2.y1+=dy;delete r2.cx;delete r2.cy;}
+      if(Math.hypot(r2.x2-ox1,r2.y2-oy1)<eps){r2.x2+=dx;r2.y2+=dy;delete r2.cx;delete r2.cy;}
+      else if(Math.hypot(r2.x2-ox2,r2.y2-oy2)<eps){r2.x2+=dx;r2.y2+=dy;delete r2.cx;delete r2.cy;}
+    }
+    return;
+  }
   if(el.t==='cam'||el.t==='lbl'||el.t==='furn'){
     // Suivi exact de la souris (pas de snap sur grille)
     el.x=rawDragX-dragOffset.x;
@@ -2278,14 +2575,18 @@ function moveEl(el,dx,dy){
     return;
   }
   if(el.t==='door'||el.t==='win'){
-    const ncx=(el.x1+el.x2)/2+dx,ncy=(el.y1+el.y2)/2+dy;
+    // Tracking absolu : souris − offset enregistré au mousedown = centre cible
+    // Évite l'accumulation de delta qui drift sur les courbes
+    const ncx=rawDragX-dragOffset.x, ncy=rawDragY-dragOffset.y;
     const hw=Math.hypot(el.x2-el.x1,el.y2-el.y1)/2;
-    const nw=nearWall(ncx,ncy,80/zoom);
+    // Rayon généreux (120px écran) pour rester accroché au mur même en mouvement latéral
+    const nw=nearWall(ncx,ncy,120/zoom);
     if(nw){
       const pr=projOnWall(ncx,ncy,nw);
       el.x1=pr.x-pr.ux*hw;el.y1=pr.y-pr.uy*hw;
       el.x2=pr.x+pr.ux*hw;el.y2=pr.y+pr.uy*hw;
     } else {
+      // Aucun mur proche : glissement libre
       el.x1+=dx;el.y1+=dy;el.x2+=dx;el.y2+=dy;
     }
     return;
@@ -2545,23 +2846,350 @@ function toggleFurnPanel(){
   else{buildFurnPanel();panel.style.display='block';setTool('furn');}
 }
 
+// ── Panneaux Mur et Rue ───────────────────────────────────
+function toggleWallPanel(){
+  const panel=document.getElementById('wall-panel');
+  const visible=panel.style.display!=='none';
+  document.getElementById('rue-panel').style.display='none';
+  document.getElementById('furn-panel').style.display='none';
+  if(visible){panel.style.display='none';}
+  else{
+    panel.style.display='block';
+    // Mettre en valeur le sous-type actif
+    document.getElementById('wbtn-droit').classList.toggle('fsel',tool==='wall');
+    document.getElementById('wbtn-courbe').classList.toggle('fsel',tool==='bspline');
+  }
+}
+function selectWallType(t){
+  document.getElementById('wall-panel').style.display='none';
+  setTool(t);
+}
+function toggleRuePanel(){
+  const panel=document.getElementById('rue-panel');
+  const visible=panel.style.display!=='none';
+  document.getElementById('wall-panel').style.display='none';
+  document.getElementById('furn-panel').style.display='none';
+  if(visible){panel.style.display='none';if(tool==='rue')setTool('select');}
+  else{
+    panel.style.display='block';
+    document.getElementById('rbtn-droite').classList.toggle('fsel',selectedRueType==='droite');
+    document.getElementById('rbtn-courbe').classList.toggle('fsel',selectedRueType==='courbe');
+  }
+}
+function selectRueType(type){
+  selectedRueType=type;
+  document.getElementById('rue-panel').style.display='none';
+  setTool('rue');
+}
+
+// ── Dessin des rues ───────────────────────────────────────
+function drawRue(r,sel){
+  if(r.pts&&r.pts.length>=2){drawRuePts(r,sel);return;}
+  const{x1,y1,x2,y2}=r;
+  const hw=(r.width||300)/2;
+  const len=Math.hypot(x2-x1,y2-y1)||1;
+  const ddx=(x2-x1)/len,ddy=(y2-y1)/len;
+  const rnx=-ddy,rny=ddx;
+  const N=40;
+  cx.save();cx.lineCap='round';
+
+  // ── Jonctions côté-spécifiques (ouverture seulement du bon bord) ──
+  const gaps=[];
+  if(r.cx===undefined){
+    for(const r2 of rues){
+      if(r2.id===r.id)continue;
+      const eps2=r2.pts?[r2.pts[0],r2.pts[r2.pts.length-1]]:[{x:r2.x1,y:r2.y1},{x:r2.x2,y:r2.y2}];
+      for(const ep of eps2){
+        const tlen=(ep.x-x1)*ddx+(ep.y-y1)*ddy;
+        const t=tlen/len;
+        const px=x1+ddx*tlen,py=y1+ddy*tlen;
+        const normalDist=(ep.x-px)*rnx+(ep.y-py)*rny;
+        if(t>0.01&&t<0.99&&Math.abs(normalDist)<hw+8/zoom){
+          let side=0;
+          if(normalDist>hw*0.25)side=1;
+          else if(normalDist<-hw*0.25)side=-1;
+          gaps.push({tC:t,tH:(r2.width||300)/2/len,side});
+        }
+      }
+    }
+  }
+  const inGap=(t,sign)=>gaps.some(g=>Math.abs(t-g.tC)<g.tH&&(g.side===0||g.side===sign));
+
+  const col=sel?'#5ab0ff':'#1a3a7a';
+  cx.strokeStyle=col;cx.lineWidth=Math.max(2,2.5*zoom);cx.setLineDash([10*zoom,7*zoom]);
+
+  function drawBorder(sign){
+    cx.beginPath();let pen=false;
+    if(r.cx!==undefined){
+      for(let i=0;i<=N;i++){
+        const t=i/N,mt=1-t;
+        const bx=mt*mt*x1+2*mt*t*r.cx+t*t*x2;
+        const by=mt*mt*y1+2*mt*t*r.cy+t*t*y2;
+        const tgx=2*(1-t)*(r.cx-x1)+2*t*(x2-r.cx);
+        const tgy=2*(1-t)*(r.cy-y1)+2*t*(y2-r.cy);
+        const tgl=Math.hypot(tgx,tgy)||1;
+        const s=w2s(bx+(-tgy/tgl)*hw*sign,by+(tgx/tgl)*hw*sign);
+        if(!pen){cx.moveTo(s.x,s.y);pen=true;}else cx.lineTo(s.x,s.y);
+      }
+    } else {
+      for(let i=0;i<=N;i++){
+        const t=i/N;
+        if(inGap(t,sign)){pen=false;continue;}
+        const s=w2s(x1+t*(x2-x1)+rnx*hw*sign,y1+t*(y2-y1)+rny*hw*sign);
+        if(!pen){cx.moveTo(s.x,s.y);pen=true;}else cx.lineTo(s.x,s.y);
+      }
+    }
+    cx.stroke();
+  }
+  drawBorder(1);drawBorder(-1);cx.setLineDash([]);
+
+  if(sel){
+    let midX=(x1+x2)/2,midY=(y1+y2)/2,nxm=rnx,nym=rny;
+    if(r.cx!==undefined){
+      const t=0.5,mt=0.5;
+      midX=mt*mt*x1+2*mt*t*r.cx+t*t*x2;midY=mt*mt*y1+2*mt*t*r.cy+t*t*y2;
+      const tgx=2*(1-t)*(r.cx-x1)+2*t*(x2-r.cx);
+      const tgy=2*(1-t)*(r.cy-y1)+2*t*(y2-r.cy);
+      const tgl=Math.hypot(tgx,tgy)||1;nxm=-tgy/tgl;nym=tgx/tgl;
+    }
+    [1,-1].forEach(sign=>{
+      const wp=w2s(midX+nxm*hw*sign,midY+nym*hw*sign);
+      cx.fillStyle='#3a9fff';cx.strokeStyle='white';cx.lineWidth=2;
+      cx.beginPath();cx.arc(wp.x,wp.y,7,0,2*Math.PI);cx.fill();cx.stroke();
+    });
+    [w2s(x1,y1),w2s(x2,y2)].forEach(ep=>{
+      cx.fillStyle='#ff9500';cx.strokeStyle='white';cx.lineWidth=2;
+      cx.beginPath();cx.arc(ep.x,ep.y,7,0,2*Math.PI);cx.fill();cx.stroke();
+    });
+    const ms=w2s(midX,midY);
+    const wlbl=formatDist((r.width||300)*worldScale);
+    const llbl=formatDist(len*worldScale);
+    cx.font=`bold ${11*zoom}px sans-serif`;
+    const lbl=`L: ${llbl}  l: ${wlbl}`;
+    const fw=cx.measureText(lbl).width+12;
+    cx.fillStyle='rgba(255,255,255,.95)';cx.strokeStyle='#3a9fff';cx.lineWidth=1.5;
+    cx.beginPath();cx.rect(ms.x-fw/2,ms.y-26,fw,18);cx.fill();cx.stroke();
+    cx.fillStyle='#0a3a8c';cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(lbl,ms.x,ms.y-17);
+  }
+  cx.restore();
+}
+
+// Rue B-Spline (pts[]) : dessine les deux bandes
+function drawRuePts(r,sel){
+  const hw=(r.width||300)/2;
+  const pts=r.pts;
+  const s=sampleCatmullRom(pts,80);
+  if(s.length<2)return;
+  cx.save();cx.lineCap='round';
+  const col=sel?'#5ab0ff':'#1a3a7a';
+  cx.strokeStyle=col;cx.lineWidth=Math.max(2,2.5*zoom);cx.setLineDash([10*zoom,7*zoom]);
+  function drawSide(sign){
+    cx.beginPath();let pen=false;
+    for(let i=0;i<s.length;i++){
+      const prev=i>0?s[i-1]:s[Math.min(i+1,s.length-1)];
+      const next=i<s.length-1?s[i+1]:s[Math.max(0,i-1)];
+      const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
+      const pt=w2s(s[i].x+(-tgy/tgl)*hw*sign,s[i].y+(tgx/tgl)*hw*sign);
+      if(!pen){cx.moveTo(pt.x,pt.y);pen=true;}else cx.lineTo(pt.x,pt.y);
+    }
+    cx.stroke();
+  }
+  drawSide(1);drawSide(-1);cx.setLineDash([]);
+  if(sel){
+    const info=midInfoRuePts(r);
+    if(info){
+      // Handles largeur (bleus)
+      [1,-1].forEach(sign=>{
+        const wp=w2s(info.x+info.nx*hw*sign,info.y+info.ny*hw*sign);
+        cx.fillStyle='#3a9fff';cx.strokeStyle='white';cx.lineWidth=2;
+        cx.beginPath();cx.arc(wp.x,wp.y,7,0,2*Math.PI);cx.fill();cx.stroke();
+      });
+      // Label longueur/largeur
+      const llen=info.sampled.reduce((acc,p,i,a)=>i?acc+Math.hypot(p.x-a[i-1].x,p.y-a[i-1].y):acc,0);
+      const ms=w2s(info.x,info.y);
+      const wlbl=formatDist((r.width||300)*worldScale);
+      const llbl=formatDist(llen*worldScale);
+      cx.font=`bold ${11*zoom}px sans-serif`;
+      const lbl=`L: ${llbl}  l: ${wlbl}`;
+      const fw=cx.measureText(lbl).width+12;
+      cx.fillStyle='rgba(255,255,255,.95)';cx.strokeStyle='#3a9fff';cx.lineWidth=1.5;
+      cx.beginPath();cx.rect(ms.x-fw/2,ms.y-26,fw,18);cx.fill();cx.stroke();
+      cx.fillStyle='#0a3a8c';cx.textAlign='center';cx.textBaseline='middle';
+      cx.fillText(lbl,ms.x,ms.y-17);
+    }
+    // Handles extrémités (oranges)
+    [pts[0],pts[pts.length-1]].forEach(ep=>{
+      const ps=w2s(ep.x,ep.y);
+      cx.fillStyle='#ff9500';cx.strokeStyle='white';cx.lineWidth=2;
+      cx.beginPath();cx.arc(ps.x,ps.y,7,0,2*Math.PI);cx.fill();cx.stroke();
+    });
+    // Points de contrôle intermédiaires (verts)
+    pts.forEach((pt,i)=>{
+      if(i===0||i===pts.length-1)return;
+      const ps=w2s(pt.x,pt.y);
+      cx.fillStyle='#3adf6f';cx.strokeStyle='white';cx.lineWidth=1.5;
+      cx.beginPath();cx.arc(ps.x,ps.y,5,0,2*Math.PI);cx.fill();cx.stroke();
+    });
+  }
+  cx.restore();
+}
+
+function getRueWidth(){
+  if(rueLockedW!==null) return rueLockedW;
+  if(rueInput){const v=parseFloat(rueInput.replace(',','.'));if(v>0)return v*1000/worldScale;}
+  return rueWidth;
+}
+function finalizeRueBspline(){
+  if(rueBsplinePts.length<2)return;
+  const w=getRueWidth();
+  saveHistory();
+  rues.push({id:nid(),t:'rue',pts:[...rueBsplinePts],width:w});
+  rueBsplinePts=[];rueInput='';rueLockedW=null;rueAngleSnap=null;
+  render();
+}
+function drawRueBsplinePreview(){
+  const allPts=[...rueBsplinePts,{x:mx,y:my}];
+  if(allPts.length<2)return;
+  const hw=getRueWidth()/2;
+  const s=sampleCatmullRom(allPts,60);
+  cx.save();cx.lineCap='round';
+  // Guide angulaire depuis le dernier point posé
+  if(rueAngleSnap&&rueBsplinePts.length>0){
+    const last=rueBsplinePts[rueBsplinePts.length-1];
+    const ls=w2s(last.x,last.y);
+    const cos=Math.cos(rueAngleSnap.angle),sin=Math.sin(rueAngleSnap.angle);const far=5000;
+    const g1=w2s(last.x+cos*far,last.y+sin*far),g2=w2s(last.x-cos*far,last.y-sin*far);
+    cx.strokeStyle='rgba(74,200,74,.2)';cx.lineWidth=1;cx.setLineDash([8,5]);
+    cx.beginPath();cx.moveTo(g1.x,g1.y);cx.lineTo(g2.x,g2.y);cx.stroke();cx.setLineDash([]);
+  }
+  // Remplissage translucide
+  cx.fillStyle='rgba(160,155,148,.45)';
+  if(s.length>=2){
+    const side1=[],side2=[];
+    for(let i=0;i<s.length;i++){
+      const prev=i>0?s[i-1]:s[Math.min(i+1,s.length-1)];
+      const next=i<s.length-1?s[i+1]:s[Math.max(0,i-1)];
+      const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
+      const bnx=-tgy/tgl,bny=tgx/tgl;
+      side1.push(w2s(s[i].x+bnx*hw,s[i].y+bny*hw));
+      side2.push(w2s(s[i].x-bnx*hw,s[i].y-bny*hw));
+    }
+    cx.beginPath();
+    cx.moveTo(side1[0].x,side1[0].y);
+    side1.forEach(pt=>cx.lineTo(pt.x,pt.y));
+    [...side2].reverse().forEach(pt=>cx.lineTo(pt.x,pt.y));
+    cx.closePath();cx.fill();
+    // Bords
+    cx.strokeStyle='rgba(30,30,30,.85)';cx.lineWidth=Math.max(2,3.5*zoom);cx.setLineDash([]);
+    for(const side of[side1,side2]){
+      cx.beginPath();cx.moveTo(side[0].x,side[0].y);
+      side.forEach((pt,i)=>{if(i>0)cx.lineTo(pt.x,pt.y);});cx.stroke();
+    }
+  }
+  // Points de contrôle posés
+  allPts.forEach((pt,i)=>{
+    const ps=w2s(pt.x,pt.y);
+    cx.fillStyle=i<rueBsplinePts.length?'rgba(74,200,74,.9)':'rgba(74,200,74,.45)';
+    cx.strokeStyle='white';cx.lineWidth=2;
+    cx.beginPath();cx.arc(ps.x,ps.y,5,0,2*Math.PI);cx.fill();cx.stroke();
+  });
+  // Label largeur
+  if(s.length>4){
+    const mi=Math.floor(s.length/2);
+    const prev=s[mi-1],next=s[mi+1];
+    const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
+    const bnx=-tgy/tgl,bny=tgx/tgl;
+    const pw1=w2s(s[mi].x+bnx*hw,s[mi].y+bny*hw);
+    const pw2=w2s(s[mi].x-bnx*hw,s[mi].y-bny*hw);
+    const wActive=rueLockedW===null;
+    const wlbl=rueInput&&wActive?rueInput+' m':formatDist(getRueWidth()*worldScale);
+    drawDimLine(pw1.x,pw1.y,pw2.x,pw2.y,wlbl,wActive);
+  }
+  cx.restore();
+}
+
+function drawRuePreview(){
+  const ddx=mx-rueSt.x,ddy=my-rueSt.y,dlen=Math.hypot(ddx,ddy)||1;
+  if(dlen<2)return;
+  const nx=-ddy/dlen,ny=ddx/dlen;
+  const hw=getRueWidth()/2;
+  cx.save();
+  // Guide angulaire
+  if(rueAngleSnap){
+    const ls=w2s(rueSt.x,rueSt.y);
+    const cos=Math.cos(rueAngleSnap.angle),sin=Math.sin(rueAngleSnap.angle);
+    const far=5000;
+    const g1=w2s(rueSt.x+cos*far,rueSt.y+sin*far);
+    const g2=w2s(rueSt.x-cos*far,rueSt.y-sin*far);
+    cx.strokeStyle='rgba(74,200,74,.2)';cx.lineWidth=1;
+    cx.setLineDash([8,5]);cx.beginPath();cx.moveTo(g1.x,g1.y);cx.lineTo(g2.x,g2.y);cx.stroke();
+    cx.setLineDash([]);
+    const mp=w2s(rueSt.x+cos*60,rueSt.y+sin*60);
+    cx.font=`bold ${11*zoom}px sans-serif`;cx.fillStyle='#7ac87a';
+    cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(rueAngleSnap.label,mp.x,mp.y-10);
+  }
+  // Remplissage de la bande
+  const ps1=w2s(rueSt.x+nx*hw,rueSt.y+ny*hw);
+  const pe1=w2s(mx+nx*hw,my+ny*hw);
+  const pe2=w2s(mx-nx*hw,my-ny*hw);
+  const ps2=w2s(rueSt.x-nx*hw,rueSt.y-ny*hw);
+  cx.beginPath();cx.moveTo(ps1.x,ps1.y);cx.lineTo(pe1.x,pe1.y);cx.lineTo(pe2.x,pe2.y);cx.lineTo(ps2.x,ps2.y);cx.closePath();
+  cx.fillStyle='rgba(160,155,148,.65)';cx.fill();
+  // Bordures noires épaisses
+  cx.strokeStyle='rgba(30,30,30,.85)';cx.lineWidth=Math.max(2,3.5*zoom);cx.setLineDash([]);cx.lineCap='round';
+  for(const [a,b] of [[ps1,pe1],[ps2,pe2]]){
+    cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();
+  }
+  // Ligne centrale tirets jaunes + points de départ/fin
+  const rsa=w2s(rueSt.x,rueSt.y),rea=w2s(mx,my);
+  cx.strokeStyle='rgba(220,180,0,.85)';cx.lineWidth=Math.max(1.5,2*zoom);cx.setLineDash([12*zoom,9*zoom]);
+  cx.beginPath();cx.moveTo(rsa.x,rsa.y);cx.lineTo(rea.x,rea.y);cx.stroke();
+  cx.setLineDash([]);
+  // Dim largeur (perpendiculaire au milieu)
+  const midX=(rueSt.x+mx)/2,midY=(rueSt.y+my)/2;
+  const wActive=rueLockedW===null;
+  const wlbl=rueInput&&wActive?rueInput+' m':formatDist(getRueWidth()*worldScale);
+  const pw1=w2s(midX+nx*hw,midY+ny*hw);
+  const pw2=w2s(midX-nx*hw,midY-ny*hw);
+  drawDimLine(pw1.x,pw1.y,pw2.x,pw2.y,wlbl,wActive);
+  // Dim longueur (le long de la rue)
+  const lActive=rueLockedW!==null;
+  const llbl=rueInput&&lActive?rueInput+' m':formatDist(dlen*worldScale);
+  drawDimLine(rsa.x,rsa.y,rea.x,rea.y,llbl,lActive);
+  // Point de départ
+  cx.fillStyle='rgba(74,170,74,.9)';
+  cx.beginPath();cx.arc(rsa.x,rsa.y,5,0,2*Math.PI);cx.fill();
+  cx.restore();
+}
+
 function setTool(t){
   // Annuler tout ce qui était en cours dans l'ancien mode (déselectionner aussi)
   tool=t;wallPts=[];roomSt=null;camSt=null;hoverPreview=null;
   wallInput='';roomLockedX=null;roomInput='';bsplinePts=[];
+  rueSt=null;rueInput='';rueLockedW=null;rueAngleSnap=null;rueBsplinePts=[];
+  resizingRueWidth=null;resizingRueEndpoint=null;
   SEL=null;
   camInput='';camInputMode='angle';camLockedFov=null;camSelField=null;camSelInput='';
   resizingCam=null;resizingDoor=null;resizingFurnHandle=null;rotatingFurn=null;
-  // Fermer le panneau meubles si on change d'outil (sauf furn)
+  // Fermer les panneaux si on change d'outil
   if(t!=='furn') document.getElementById('furn-panel').style.display='none';
+  if(t!=='wall'&&t!=='bspline') document.getElementById('wall-panel').style.display='none';
+  if(t!=='rue') document.getElementById('rue-panel').style.display='none';
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById('btn-'+t);if(btn)btn.classList.add('active');
+  // bspline est un sous-type de mur → activer le bouton Mur
+  const btnId=t==='bspline'?'btn-wall':('btn-'+t);
+  const btn=document.getElementById(btnId);if(btn)btn.classList.add('active');
   if(t==='furn') document.getElementById('btn-furn').classList.add('active');
-  const names={select:'Sélection',wall:'Mur (clic 1 = départ · clic 2 = fin)',room:'Pièce (clic coin 1 → clic coin 2)',
+  const names={select:'Sélection',wall:'Mur droit (clic 1 = départ · clic 2 = fin)',
+    room:'Pièce (clic coin 1 → clic coin 2)',
     door:'Porte P (clic sur mur)',door2:'Double porte DP (clic sur mur)',
     window:'Fenêtre F (clic sur mur)',camera:'Caméra (2 clics: position+direction)',label:'Étiquette texte',
-    calibrate:'Calibration — cliquez le 1er point',bspline:'Courbe B-Spline (clic=point, Entrée=finaliser)',
-    furn:'Meuble (clic=poser, R=tourner 90°)'};
+    calibrate:'Calibration — cliquez le 1er point',
+    bspline:'Mur courbé (clic=point, Entrée=finaliser, Dbl-clic=fin)',
+    furn:'Meuble (clic=poser, R=tourner 90°)',
+    rue:'Rue droite (2 clics) · Rue courbée (clics+Entrée/DblClic pour finir · Retour=annuler dernier pt)'};
   document.getElementById('ptool').textContent=names[t]||t;
   document.getElementById('stool').textContent='Outil: '+(names[t]||t);
   cv.style.cursor=t==='select'?'default':CURSOR_CROSS;
@@ -2609,14 +3237,15 @@ function deleteSelected(){
   walls=walls.filter(w=>w.id!==id);doors=doors.filter(d=>d.id!==id);
   wins=wins.filter(w=>w.id!==id);cams=cams.filter(c=>c.id!==id);
   lbls=lbls.filter(l=>l.id!==id);furnitures=furnitures.filter(f=>f.id!==id);
+  rues=rues.filter(r=>r.id!==id);
   if(wasWall)autoRoomsDirty=true;
   SEL=null;updatePropPanel();render();
 }
 function clearAll(){
   if(!confirm('Effacer tout le plan ?'))return;
-  walls=[];doors=[];wins=[];cams=[];lbls=[];rooms=[];furnitures=[];
+  walls=[];doors=[];wins=[];cams=[];lbls=[];rooms=[];furnitures=[];rues=[];
   autoRooms=[];autoRoomLabels={};autoRoomsDirty=true;
-  SEL=null;wallPts=[];bsplinePts=[];
+  SEL=null;wallPts=[];bsplinePts=[];rueSt=null;rueInput='';rueLockedW=null;rueBsplinePts=[];
   updatePropPanel();render();
 }
 
@@ -2786,12 +3415,14 @@ function exportPDF(){
 
 // ── Sauvegarde / Chargement projet ───────────────────────
 async function saveProject(){
-  const data={version:1,walls,doors,wins,cams,lbls,rooms,furnitures,panX,panY,zoom,uid};
+  const data={version:2,walls,doors,wins,cams,lbls,rooms,furnitures,rues,
+    panX,panY,zoom,uid,wallColor,bgOpacity,worldScale};
   const json=JSON.stringify(data,null,2);
   if(window.showSaveFilePicker){
     try{
       const handle=await window.showSaveFilePicker({
-        suggestedName:'plan_videoprotection.planvideosurveillance'
+        suggestedName:'plan_videoprotection.pvs',
+        types:[{description:'Plan Vidéosurveillance (.pvs)',accept:{'application/json':['.pvs']}}]
       });
       const writable=await handle.createWritable();
       await writable.write(json);
@@ -2803,7 +3434,7 @@ async function saveProject(){
     // Fallback Firefox/Safari
     const blob=new Blob([json],{type:'application/json'});
     const a=document.createElement('a');
-    a.download='plan_videoprotection.planvideosurveillance';
+    a.download='plan_videoprotection.pvs';
     a.href=URL.createObjectURL(blob);a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -2824,12 +3455,33 @@ function loadProject(input){
       lbls=data.lbls||[];
       rooms=data.rooms||[];
       furnitures=data.furnitures||[];
+      rues=data.rues||[];
       panX=data.panX??120;
       panY=data.panY??200;
       zoom=data.zoom??1;
       uid=data.uid??uid;
+      // Propriétés visuelles (version 2+)
+      if(data.wallColor){
+        wallColor=data.wallColor;
+        document.getElementById('wallcolorpicker').value=wallColor;
+        document.getElementById('wallcolorlbl').textContent=wallColor;
+        document.getElementById('legwall').style.background=wallColor;
+      }
+      if(data.bgOpacity!==undefined){
+        bgOpacity=data.bgOpacity;
+        const pct=Math.round(bgOpacity*100);
+        document.getElementById('bgopslider').value=pct;
+        document.getElementById('bgoplbl').textContent=pct+'%';
+      }
+      if(data.worldScale!==undefined&&data.worldScale!==10){
+        worldScale=data.worldScale;
+        const mm=worldScale,m=mm/10/100;
+        document.getElementById('scalelbl').textContent=
+          m>=1?`Échelle : 1u = ${m.toFixed(2)}m`:`Échelle : 1u = ${(mm/10).toFixed(1)}cm`;
+      }
       SEL=null;
       history=[];
+      autoRoomsDirty=true;
       updatePropPanel();
       render();
     }catch(err){
