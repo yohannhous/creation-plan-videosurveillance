@@ -20,18 +20,22 @@ body{font-family:'Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:
 .tsep{height:1px;background:#0f3460;margin:3px 0}
 #cvwrap{flex:1;overflow:hidden;position:relative;background:#c8ccd4}
 canvas{display:block}
-#sidebar{width:190px;background:#16213e;border-left:1px solid #0f3460;color:white;padding:10px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
-#sidebar h3{font-size:11px;text-transform:uppercase;color:#7eb3ff;letter-spacing:1px;margin-bottom:2px}
-.pg{background:#0f3460;border-radius:6px;padding:8px;font-size:12px}
-.pl{font-size:10px;color:#aac4e8;margin-bottom:3px}
 .pi{width:100%;background:#16213e;border:1px solid #2a5090;border-radius:4px;color:white;padding:3px 7px;font-size:12px}
 .pi:focus{outline:none;border-color:#7eb3ff}
 #sbar{background:#0d2040;color:#aac4e8;padding:3px 10px;font-size:11px;display:flex;gap:16px}
-.leg{display:flex;align-items:center;gap:5px;font-size:11px;margin:2px 0}
 .fbtn{background:#0f3460;border:2px solid transparent;border-radius:6px;color:white;cursor:pointer;font-size:11px;padding:7px 5px;text-align:center;transition:all .15s;width:100%}
 .fbtn:hover{background:#1a4080;border-color:#5a9fff}
 .fbtn.fsel{background:#c8a86b;border-color:#e0c080;color:#1a1a2e}
 .fbtn svg{display:block;margin:0 auto 3px;width:28px;height:22px}
+.layer-item{display:flex;align-items:center;gap:5px;background:#0f3460;border:1.5px solid transparent;border-radius:6px;padding:5px 7px;cursor:pointer;margin-bottom:3px;transition:all .12s;user-select:none}
+.layer-item:hover{background:#1a4080;border-color:#5a9fff}
+.layer-item.lactive{background:#1a3a6a;border-color:#3a9fff}
+.layer-item.ldragover{border-color:#e94560;background:#2a1030}
+.layer-drag{cursor:grab;color:#556;font-size:15px;line-height:1;flex-shrink:0}
+.layer-name{flex:1;color:#cdd8f0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer-item.lactive .layer-name{color:#5ab0ff;font-weight:bold}
+.layer-del{background:none;border:none;color:#e94560;cursor:pointer;font-size:12px;padding:0 2px;line-height:1;flex-shrink:0;opacity:.6;transition:opacity .1s}
+.layer-del:hover{opacity:1}
 </style>
 </head>
 <body>
@@ -60,11 +64,11 @@ canvas{display:block}
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="3" y="3" width="18" height="18" rx="1"/></svg>Pièce
     </button>
     <div class="tsep"></div>
-    <button class="tbtn" id="btn-door" onclick="setTool('door')" title="Porte simple P (P)">
-      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="4" y1="20" x2="14" y2="20"/><line x1="4" y1="20" x2="4" y2="9"/><path d="M4 9 A10 10 0 0 1 14 20"/></svg>Porte P
+    <button class="tbtn" id="btn-door" onclick="toggleDoorPanel()" title="Porte (P)">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="4" y1="20" x2="14" y2="20"/><line x1="4" y1="20" x2="4" y2="9"/><path d="M4 9 A10 10 0 0 1 14 20"/></svg>Porte
     </button>
-    <button class="tbtn" id="btn-door2" onclick="setTool('door2')" title="Double porte DP (D)">
-      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="2" y1="20" x2="22" y2="20"/><line x1="12" y1="20" x2="12" y2="11"/><path d="M12 11 A9 9 0 0 0 3 20"/><path d="M12 11 A9 9 0 0 1 21 20"/></svg>DP
+    <button class="tbtn" id="btn-couche" onclick="toggleCouchePanel()" title="Couche">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="15" width="20" height="3.5" rx="1"/><rect x="2" y="10" width="20" height="3.5" rx="1"/><rect x="2" y="5" width="20" height="3.5" rx="1"/></svg>Couche
     </button>
     <button class="tbtn" id="btn-window" onclick="setTool('window')" title="Fenêtre F (F)">
       <svg viewBox="0 0 24 24" stroke="#7ab8d4" stroke-width="2" fill="none"><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="8" x2="3" y2="16"/><line x1="21" y1="8" x2="21" y2="16"/></svg>Fenêtre
@@ -84,10 +88,63 @@ canvas{display:block}
       <svg viewBox="0 0 24 24" stroke="#7ac87a" stroke-width="2" fill="none"><line x1="3" y1="8" x2="21" y2="8" stroke-dasharray="4,2"/><line x1="3" y1="16" x2="21" y2="16" stroke-dasharray="4,2"/></svg>Rue
     </button>
     <div class="tsep"></div>
-    <button class="tbtn" id="btn-bgimg" onclick="document.getElementById('bginput').click()" title="Charger image de fond">
+    <button class="tbtn" id="btn-bgimg" onclick="clickCalque()" title="Charger image de fond">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="18" height="15" rx="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><polyline points="21 15 16 10 5 21"/></svg>Calque
     </button>
     <input type="file" id="bginput" accept="image/*" style="display:none" onchange="loadBgImage(this)">
+
+    <!-- Modale saisie texte personnalisée -->
+    <div id="input-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+      <div style="background:linear-gradient(145deg,#16213e,#0f1b32);border:1.5px solid #3a6090;border-radius:16px;padding:28px 30px 22px;min-width:320px;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(100,160,255,.08);display:flex;flex-direction:column;gap:0;animation:modalIn .18s cubic-bezier(.34,1.4,.64,1)">
+        <div id="input-modal-icon" style="font-size:26px;margin-bottom:10px;text-align:center"></div>
+        <div id="input-modal-title" style="color:white;font-size:15px;font-weight:700;text-align:center;margin-bottom:4px;letter-spacing:.3px"></div>
+        <div id="input-modal-sub" style="color:#6a8abf;font-size:11px;text-align:center;margin-bottom:18px"></div>
+        <div style="position:relative;margin-bottom:20px">
+          <input id="input-modal-field" type="text" autocomplete="off" spellcheck="false"
+            style="width:100%;background:#0a1525;border:1.5px solid #2a4a7a;border-radius:10px;color:white;font-size:14px;padding:11px 14px;outline:none;transition:border-color .2s,box-shadow .2s;font-family:inherit"
+            onfocus="this.style.borderColor='#5a9fff';this.style.boxShadow='0 0 0 3px rgba(90,159,255,.18)'"
+            onblur="this.style.borderColor='#2a4a7a';this.style.boxShadow='none'">
+        </div>
+        <div style="display:flex;gap:10px">
+          <button id="input-modal-cancel"
+            style="flex:1;background:transparent;border:1.5px solid #2a4070;border-radius:9px;color:#778baa;cursor:pointer;padding:10px;font-size:12px;font-family:inherit;transition:all .15s"
+            onmouseover="this.style.borderColor='#5a7aaa';this.style.color='white'"
+            onmouseout="this.style.borderColor='#2a4070';this.style.color='#778baa'">
+            Annuler
+          </button>
+          <button id="input-modal-ok"
+            style="flex:2;background:linear-gradient(135deg,#1a4a9a,#2a6aee);border:1.5px solid #3a7aee;border-radius:9px;color:white;cursor:pointer;padding:10px;font-size:13px;font-weight:600;font-family:inherit;transition:all .15s;box-shadow:0 4px 12px rgba(42,106,238,.3)"
+            onmouseover="this.style.background='linear-gradient(135deg,#2a5aaa,#3a7aff)';this.style.boxShadow='0 6px 18px rgba(42,106,238,.5)'"
+            onmouseout="this.style.background='linear-gradient(135deg,#1a4a9a,#2a6aee)';this.style.boxShadow='0 4px 12px rgba(42,106,238,.3)'">
+            ✓ Valider
+          </button>
+        </div>
+      </div>
+    </div>
+    <style>
+    @keyframes modalIn{from{opacity:0;transform:scale(.92) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    </style>
+
+    <!-- Modale calque -->
+    <div id="calque-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center">
+      <div style="background:#16213e;border:1.5px solid #3a6090;border-radius:12px;padding:22px 26px;display:flex;flex-direction:column;gap:11px;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+        <div style="color:white;font-size:14px;font-weight:bold">🖼 Calque existant</div>
+        <div style="color:#aac4e8;font-size:12px;line-height:1.5">Un calque est déjà chargé.<br>Que souhaitez-vous faire ?</div>
+        <!-- Opacité du calque -->
+        <div style="background:#0d1b35;border:1px solid #2a4070;border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:#7eb3ff;font-size:11px;text-transform:uppercase;letter-spacing:1px">🔆 Opacité calque</span>
+            <span id="bgoplbl" style="color:white;font-size:12px;font-weight:bold;min-width:34px;text-align:right">40%</span>
+          </div>
+          <input type="range" id="bgopslider" min="5" max="100" value="40"
+            style="width:100%;accent-color:#3a9fff;cursor:pointer"
+            oninput="bgOpacity=this.value/100;document.getElementById('bgoplbl').textContent=this.value+'%';render()">
+        </div>
+        <button onclick="replaceCalque()" style="background:#0f3460;border:1px solid #3a6090;border-radius:6px;color:white;cursor:pointer;padding:8px 12px;font-size:12px;text-align:left">🔄 Remplacer le calque</button>
+        <button onclick="deleteCalque()" style="background:#5a1020;border:1px solid #e94560;border-radius:6px;color:#ff8099;cursor:pointer;padding:8px 12px;font-size:12px;text-align:left">🗑 Supprimer le calque</button>
+        <button onclick="hideCalqueModal()" style="background:#1a2a4a;border:1px solid #2a4070;border-radius:6px;color:#778baa;cursor:pointer;padding:6px 12px;font-size:11px;text-align:center">✕ Fermer</button>
+      </div>
+    </div>
     <button class="tbtn" id="btn-calibrate" onclick="setTool('calibrate')" title="Calibrer l'échelle (2 points)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="9" x2="2" y2="15"/><line x1="22" y1="9" x2="22" y2="15"/><line x1="12" y1="10" x2="12" y2="14"/></svg>Échelle
     </button>
@@ -103,6 +160,11 @@ canvas{display:block}
       <button class="fbtn" id="wbtn-courbe" onclick="selectWallType('bspline')">
         <svg viewBox="0 0 24 24" stroke="#3a9fff" stroke-width="2.2" fill="none" width="28" height="22"><path d="M3 17 C7 17 7 7 12 7 S17 17 21 7" stroke-linecap="round"/></svg>Mur courbé
       </button>
+    </div>
+    <!-- Couleurs des murs -->
+    <div style="margin-top:10px;border-top:1px solid #2a4070;padding-top:8px">
+      <div style="color:#7eb3ff;font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Couleur</div>
+      <div id="wall-palette" style="display:flex;gap:6px;flex-wrap:wrap"></div>
     </div>
   </div>
 
@@ -125,69 +187,41 @@ canvas{display:block}
     <div id="furn-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px"></div>
   </div>
 
+  <!-- Panneau porte -->
+  <div id="door-panel" style="display:none;position:absolute;left:66px;top:0;z-index:100;background:#16213e;border:1px solid #3a6090;border-radius:0 8px 8px 0;padding:10px 8px;width:185px;box-shadow:4px 4px 12px rgba(0,0,0,.5)">
+    <div style="color:#e0a87c;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Type de porte</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="fbtn" id="dbtn-simple" onclick="selectDoorSubType('single')">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" width="28" height="22"><line x1="4" y1="20" x2="14" y2="20"/><line x1="4" y1="20" x2="4" y2="9"/><path d="M4 9 A10 10 0 0 1 14 20"/></svg>Porte simple
+      </button>
+      <button class="fbtn" id="dbtn-double" onclick="selectDoorSubType('double')">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" width="28" height="22"><line x1="2" y1="20" x2="22" y2="20"/><line x1="12" y1="20" x2="12" y2="11"/><path d="M12 11 A9 9 0 0 0 3 20"/><path d="M12 11 A9 9 0 0 1 21 20"/></svg>Double porte
+      </button>
+    </div>
+    <div style="margin-top:8px;color:#778baa;font-size:10px;font-style:italic;line-height:1.4">
+      L'ouverture suit automatiquement le côté cliqué
+    </div>
+  </div>
+
+  <!-- Panneau couche -->
+  <div id="couche-panel" style="display:none;position:absolute;left:66px;top:0;z-index:100;background:#16213e;border:1px solid #3a6090;border-radius:0 8px 8px 0;padding:10px 8px;width:200px;box-shadow:4px 4px 12px rgba(0,0,0,.5)">
+    <div style="color:#7eb3ff;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">▲ haut</div>
+    <div id="layer-list" style="max-height:320px;overflow-y:auto;margin-bottom:6px"></div>
+    <div style="color:#445;font-size:10px;text-align:center;margin-bottom:6px;letter-spacing:.5px">▼ bas</div>
+    <button onclick="addLayer()" style="width:100%;background:#0a2040;border:1px solid #3a6090;border-radius:6px;color:#7eb3ff;cursor:pointer;padding:6px;font-size:11px;transition:background .12s" onmouseover="this.style.background='#1a4080'" onmouseout="this.style.background='#0a2040'">+ Nouvelle couche</button>
+  </div>
+
   <div id="cvwrap"><canvas id="cv"></canvas></div>
 
-  <div id="sidebar">
-    <h3>Outil</h3>
-    <div class="pg">
-      <div class="pl">Actif</div>
-      <div id="ptool" style="font-weight:600">Mur</div>
-      <div class="pl" style="margin-top:6px;line-height:1.7;color:#8ab">
-        <b style="color:white">Clic droit</b> : déplacer vue<br>
-        <b style="color:white">Molette</b> : zoom<br>
-        <b style="color:white">Échap</b> : annuler dessin<br>
-        <b style="color:white">Échap / Dbl-clic</b> : annuler
-      </div>
-    </div>
-
-    <h3>Propriétés</h3>
-    <div class="pg" id="ppanel"><div class="pl">Cliquez un élément</div></div>
-
-    <h3>Caméra</h3>
-    <div class="pg">
-      <div class="pl">Angle de vue : <span id="fovlbl">70°</span></div>
-      <input type="range" class="pi" id="fovr" min="20" max="360" value="70" style="padding:0"
-        oninput="G.camFov=+this.value;document.getElementById('fovlbl').textContent=this.value+'°';if(SEL&&SEL.t==='cam'){SEL.fov=G.camFov}render()">
-    </div>
-
-    <h3>Murs</h3>
-    <div class="pg">
-      <div class="pl">Couleur des murs</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-        <input type="color" id="wallcolorpicker" value="#000000" style="width:36px;height:28px;border:none;background:none;cursor:pointer;padding:0"
-          oninput="wallColor=this.value;document.getElementById('wallcolorlbl').textContent=this.value;render()">
-        <span id="wallcolorlbl" style="font-size:11px;color:#aac4e8">#000000</span>
-        <button class="pi" style="padding:2px 7px;cursor:pointer;font-size:10px"
-          onclick="wallColor='#000000';document.getElementById('wallcolorpicker').value='#000000';document.getElementById('wallcolorlbl').textContent='#000000';render()">Reset</button>
-      </div>
-    </div>
-
-    <h3>Fond de plan</h3>
-    <div class="pg">
-      <div class="pl">Opacité : <span id="bgoplbl">40%</span></div>
-      <input type="range" class="pi" id="bgopslider" min="5" max="100" value="40" style="padding:0"
-        oninput="bgOpacity=+this.value/100;document.getElementById('bgoplbl').textContent=this.value+'%';render()">
-      <div class="pl" style="margin-top:5px;color:#7eb3ff" id="scalelbl">Échelle : non calibrée</div>
-    </div>
-
-    <h3>Légende</h3>
-    <div class="pg" style="line-height:1.9">
-      <div class="leg"><div id="legwall" style="width:20px;height:4px;background:#000000;border-radius:1px"></div>Mur</div>
-      <div class="leg"><div style="width:20px;height:10px;background:rgba(122,184,212,.5);border:1.5px solid #5a9fc7"></div>Fenêtre</div>
-      <div class="leg"><svg width="20" height="14"><line x1="0" y1="12" x2="0" y2="2" stroke="#111" stroke-width="1.5"/><path d="M0 2 A10 10 0 0 1 10 12" stroke="#111" fill="none" stroke-width="1.5" stroke-dasharray="3,2"/></svg>Porte</div>
-      <div class="leg"><svg width="20" height="14"><rect x="0" y="3" width="11" height="8" stroke="#e94560" fill="rgba(233,69,96,.2)" stroke-width="1.5"/><polygon points="11,4 19,2 19,12 11,11" stroke="#e94560" fill="rgba(233,69,96,.15)" stroke-width="1"/></svg>Caméra</div>
-    </div>
-
-    <h3>Raccourcis</h3>
-    <div class="pg" style="font-size:11px;line-height:1.9;color:#aac4e8">
-      <b style="color:white">S</b> Sélection &nbsp;<b style="color:white">W</b> Mur<br>
-      <b style="color:white">R</b> Pièce &nbsp;&nbsp;&nbsp;&nbsp;<b style="color:white">P</b> Porte<br>
-      <b style="color:white">D</b> Double P &nbsp;<b style="color:white">F</b> Fenêtre<br>
-      <b style="color:white">C</b> Caméra &nbsp;&nbsp;<b style="color:white">T</b> Texte<br>
-      <b style="color:white">M</b> Meubles &nbsp;&nbsp;<b style="color:white">R*</b> Tourner meuble<br>
-      <b style="color:white">Ctrl+Z</b> Annuler &nbsp;<b style="color:white">Del</b> Suppr.<br>
-      <b style="color:white">Échap</b> Annuler tracé
-    </div>
+  <!-- Éléments cachés (compatibilité JS/sauvegarde) -->
+  <div style="display:none">
+    <input type="color" id="wallcolorpicker" value="#000000">
+    <span id="scalelbl"></span>
+    <span id="ptool"></span>
+    <div id="ppanel"></div>
+    <div id="legwall"></div>
+    <div id="wall-color-preview"></div>
+    <span id="wallcolorlbl"></span>
   </div>
 </div>
 <div id="sbar">
@@ -199,7 +233,7 @@ canvas{display:block}
 
 <script>
 const cv = document.getElementById('cv');
-const cx = cv.getContext('2d');
+let cx = cv.getContext('2d');
 let W, H;
 
 const G = { sz: 20, snap: true, camFov: 90, snapRadius: 7 };
@@ -210,7 +244,10 @@ const G = { sz: 20, snap: true, camFov: 90, snapRadius: 7 };
 const CURSOR_CROSS = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='23' stroke='%23000' stroke-width='2'/%3E%3Cline x1='1' y1='12' x2='23' y2='12' stroke='%23000' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%23000'/%3E%3C/svg%3E\") 12 12, crosshair";
 
 let walls=[], doors=[], wins=[], cams=[], lbls=[], rooms=[];
+let furnitures=[], rues=[];          // déclarés ici pour init des couches
 let history = [];
+let layers = [];          // initialisé dans la section Init (après furnitures/rues)
+let activeLayerIdx = 0;
 let SEL = null;
 let tool = 'wall';
 let uid = 1;
@@ -240,21 +277,21 @@ let camLabelBBoxes=[]; // BBoxes [{field,x,y,w,h}] pour hit-test clic labels cam
 let _camPath=null;     // Path2D pictogramme SVG (lazy init)
 // Couleurs des cônes de caméra (une couleur par caméra)
 const CAM_CONE_COLORS=[
-  ['rgba(233,69,96,.18)','rgba(233,69,96,.7)'],
-  ['rgba(52,152,219,.18)','rgba(52,152,219,.7)'],
-  ['rgba(46,204,113,.18)','rgba(46,204,113,.7)'],
-  ['rgba(155,89,182,.18)','rgba(155,89,182,.7)'],
-  ['rgba(241,196,15,.18)','rgba(241,196,15,.7)'],
-  ['rgba(230,126,34,.18)','rgba(230,126,34,.7)'],
-  ['rgba(26,188,156,.18)','rgba(26,188,156,.7)'],
-  ['rgba(236,72,153,.18)','rgba(236,72,153,.7)'],
+  ['rgba(233,69,96,.42)','rgba(233,69,96,.88)'],
+  ['rgba(52,152,219,.42)','rgba(52,152,219,.88)'],
+  ['rgba(46,204,113,.42)','rgba(46,204,113,.88)'],
+  ['rgba(155,89,182,.42)','rgba(155,89,182,.88)'],
+  ['rgba(241,196,15,.42)','rgba(241,196,15,.88)'],
+  ['rgba(230,126,34,.42)','rgba(230,126,34,.88)'],
+  ['rgba(26,188,156,.42)','rgba(26,188,156,.88)'],
+  ['rgba(236,72,153,.42)','rgba(236,72,153,.88)'],
 ];
 // État courbe de mur et B-Spline
 let resizingWallCurve=null; // mur en cours de courbure par le handle
 let rotatingFurn=null;     // meuble en rotation par drag sur poignée orange
 let resizingFurnHandle=null; // {furn, hi} — hi=index dans les 8 poignées
 let bsplinePts=[];          // points posés pendant l'outil B-Spline
-let rues=[];               // liste des rues créées
+// rues déclaré en tête avec les tableaux globaux
 let rueSt=null;            // {x,y} = premier point de la rue en cours
 let rueInput='';           // saisie en cours (largeur puis longueur)
 let rueLockedW=null;       // null=phase saisie largeur, valeur=largeur verrouillée
@@ -266,6 +303,7 @@ let resizingRueEndpoint=null; // {rue, end:1|2} — drag pour allonger/raccourci
 let rueBsplinePts=[];          // points B-Spline rue en cours de tracé
 // Calque de fond
 let bgImage=null, bgOpacity=0.4;
+let doorSubType='single'; // 'single' | 'double'
 let bgX=0, bgY=0, bgW=3000, bgH=2200; // position et taille en coordonnées monde
 // Calibration échelle : mm par unité monde (défaut 100u=1m → 10mm/u)
 let worldScale=10, scalePt1=null;
@@ -273,6 +311,8 @@ let worldScale=10, scalePt1=null;
 let autoRooms=[], autoRoomLabels={}, autoRoomsDirty=true;
 // Saisie directe distance pendant tracé mur
 let wallInput='';
+let wallLabelActive=false;  // true = label cliqué, saisie activée
+let wallDimLabelBBox=null;  // bbox écran du label du mur sélectionné
 // Saisie dimensions pièce — 2 phases
 let roomLockedX=null; // null=phase 1 (largeur), valeur=phase 2 (hauteur)
 let roomInput='';     // valeur en cours de saisie pour la phase active
@@ -327,20 +367,23 @@ function snapToCorner(wx,wy){
     }
   }
   // Corps des rues — magnétisme sur les BANDES (±hw de l'axe)
-  const RUE_SNAP=R*2; // rayon plus grand pour les bords de rue
+  // Rayon indépendant de bestD pour éviter d'être trop restrictif
+  const RUE_SNAP=R*4; // rayon large pour les bords de rue
+  let bestRueD=RUE_SNAP,bestRuePx=null,bestRuePy=null;
   for(const r of rues){
     const hw=(r.width||300)/2;
     if(r.pts&&r.pts.length>=2){
       const s=sampleCatmullRom(r.pts,60);
       for(let i=0;i<s.length;i++){
-        const prev=i>0?s[i-1]:s[Math.min(i+1,s.length-1)];
-        const next=i<s.length-1?s[i+1]:s[Math.max(0,i-1)];
+        // Tangente correcte aux extrémités
+        const prev=i>0?s[i-1]:s[0];
+        const next=i<s.length-1?s[i+1]:s[s.length-1];
         const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
         const bnx=-tgy/tgl,bny=tgx/tgl;
         for(const sign of[1,-1]){
           const bx=s[i].x+bnx*hw*sign,by=s[i].y+bny*hw*sign;
           const d=Math.hypot(wx-bx,wy-by);
-          if(d<bestD&&d<RUE_SNAP){bestD=d;bestPx=bx;bestPy=by;}
+          if(d<bestRueD){bestRueD=d;bestRuePx=bx;bestRuePy=by;}
         }
       }
     } else if(r.cx!==undefined){
@@ -355,22 +398,24 @@ function snapToCorner(wx,wy){
         for(const sign of[1,-1]){
           const bx=bx0+bnx*hw*sign,by=by0+bny*hw*sign;
           const d=Math.hypot(wx-bx,wy-by);
-          if(d<bestD&&d<RUE_SNAP){bestD=d;bestPx=bx;bestPy=by;}
+          if(d<bestRueD){bestRueD=d;bestRuePx=bx;bestRuePy=by;}
         }
       }
     } else {
       const rlen=Math.hypot(r.x2-r.x1,r.y2-r.y1)||1;
       const rddx=(r.x2-r.x1)/rlen,rddy=(r.y2-r.y1)/rlen;
-      const rnx=-rddy,rny=rddx;
-      const t=Math.max(0.02,Math.min(0.98,((wx-r.x1)*rddx+(wy-r.y1)*rddy)/rlen));
+      const rrnx=-rddy,rrny=rddx;
+      const t=Math.max(0,Math.min(1,((wx-r.x1)*rddx+(wy-r.y1)*rddy)/rlen));
       const px=r.x1+t*rddx*rlen,py=r.y1+t*rddy*rlen;
       for(const sign of[1,-1]){
-        const bx=px+rnx*hw*sign,by=py+rny*hw*sign;
+        const bx=px+rrnx*hw*sign,by=py+rrny*hw*sign;
         const d=Math.hypot(wx-bx,wy-by);
-        if(d<bestD&&d<RUE_SNAP){bestD=d;bestPx=bx;bestPy=by;}
+        if(d<bestRueD){bestRueD=d;bestRuePx=bx;bestRuePy=by;}
       }
     }
   }
+  // Fusionner : priorité aux murs proches, sinon bords de rue
+  if(bestRuePx!==null&&bestRueD<bestD){bestD=bestRueD;bestPx=bestRuePx;bestPy=bestRuePy;}
   if(bestPx!==null){snapIndicatorType='wall';return{x:bestPx,y:bestPy,snapped:true};}
 
   // 3. Coin de grand carreau
@@ -472,16 +517,17 @@ function render(){
   // Cote du mur sélectionné
   if(SEL&&SEL.t==='wall'){
     const s=w2s(SEL.x1,SEL.y1),e=w2s(SEL.x2,SEL.y2);
-    const lbl=wallInput?wallInput+' m':formatDist(Math.hypot(SEL.x2-SEL.x1,SEL.y2-SEL.y1)*worldScale);
-    drawDimLine(s.x,s.y,e.x,e.y,lbl,!wallInput);
+    const lbl=wallLabelActive?(wallInput?wallInput+' m':'_ m'):formatDist(Math.hypot(SEL.x2-SEL.x1,SEL.y2-SEL.y1)*worldScale);
+    // active=true (bleu/cliquable) si pas encore en édition ; active=false (blanc/curseur) si label cliqué
+    wallDimLabelBBox=drawDimLine(s.x,s.y,e.x,e.y,lbl,!wallLabelActive);
   }
   // Prévisualisation rue en cours de tracé
   if(tool==='rue'){
     if(selectedRueType==='courbe'&&rueBsplinePts.length>0)drawRueBsplinePreview();
     else if(rueSt)drawRuePreview();
   }
-  // Handle de courbure du mur OU de la rue sélectionné(e) (diamant orange au milieu)
-  if(SEL&&(SEL.t==='wall'||SEL.t==='rue')&&!SEL.pts&&tool==='select'){
+  // Handle de courbure du mur sélectionné (diamant orange au milieu) — pas pour les rues
+  if(SEL&&SEL.t==='wall'&&!SEL.pts&&tool==='select'){
     let hx,hy;
     if(SEL.cx!==undefined){
       const p=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p.x;hy=p.y;
@@ -502,7 +548,7 @@ function render(){
         drawDimLine(s.x,s.y,e.x,e.y,formatDist(Math.hypot(w.x2-w.x1,w.y2-w.y1)*worldScale),true);
       });
   }
-  rues.forEach(r=>drawRue(r,!!(SEL&&SEL.id===r.id)));
+  drawRuesOffscreen();
   wins.forEach(w=>drawWin(w));
   doors.forEach(d=>drawDoor(d));
   cams.forEach(c=>drawCam(c));
@@ -823,7 +869,42 @@ function drawDimLine(sx1,sy1,sx2,sy2,label,active=false){
   cx.fillStyle='#0a3a8c';cx.textAlign='center';cx.textBaseline='middle';
   cx.fillText(label,mx2,my2);
   cx.restore();
+  return {x:lx,y:ly,w:lw,h:lh}; // bbox écran du label
 }
+function applyWallInput(){
+  if(!wallInput)return;
+  const wu=parseFloat(wallInput.replace(',','.'))*1000/worldScale;
+  if(wu>0){
+    if(tool==='wall'&&wallPts.length>0){
+      const last=wallPts[wallPts.length-1];
+      const dx=mx-last.x,dy=my-last.y,d=Math.hypot(dx,dy)||1;
+      const ex=last.x+dx/d*wu,ey=last.y+dy/d*wu;
+      saveHistory();walls.push({id:nid(),t:'wall',x1:last.x,y1:last.y,x2:ex,y2:ey,color:wallColor});
+      splitWallsAtJunctions();deduplicateWalls();wallPts=[];
+    } else if(SEL&&(SEL.t==='door'||SEL.t==='win')){
+      const mcx=(SEL.x1+SEL.x2)/2,mcy=(SEL.y1+SEL.y2)/2;
+      const dx=SEL.x2-SEL.x1,dy=SEL.y2-SEL.y1,d=Math.hypot(dx,dy)||1;
+      const half=wu/2;
+      saveHistory();
+      SEL.x1=mcx-dx/d*half;SEL.y1=mcy-dy/d*half;
+      SEL.x2=mcx+dx/d*half;SEL.y2=mcy+dy/d*half;
+    } else if(SEL&&SEL.t==='wall'){
+      const dx=SEL.x2-SEL.x1,dy=SEL.y2-SEL.y1,d=Math.hypot(dx,dy)||1;
+      const ox2=SEL.x2,oy2=SEL.y2;
+      saveHistory();
+      SEL.x2=SEL.x1+dx/d*wu;SEL.y2=SEL.y1+dy/d*wu;
+      const eps=1;
+      walls.forEach(w=>{
+        if(w.id===SEL.id)return;
+        if(Math.abs(w.x1-ox2)<eps&&Math.abs(w.y1-oy2)<eps){w.x1=SEL.x2;w.y1=SEL.y2;}
+        if(Math.abs(w.x2-ox2)<eps&&Math.abs(w.y2-oy2)<eps){w.x2=SEL.x2;w.y2=SEL.y2;}
+      });
+      splitWallsAtJunctions();deduplicateWalls();
+    }
+  }
+  wallInput='';wallLabelActive=false;wallDimLabelBBox=null;render();
+}
+
 function loadBgImage(input){
   const file=input.files[0];if(!file)return;
   const url=URL.createObjectURL(file);
@@ -831,6 +912,64 @@ function loadBgImage(input){
   img.onload=()=>{bgImage=img;bgX=0;bgY=0;bgW=3000;bgH=2200;URL.revokeObjectURL(url);render();};
   img.src=url;
   input.value='';
+}
+function clickCalque(){
+  if(bgImage){
+    const m=document.getElementById('calque-modal');
+    m.style.display='flex';
+  } else {
+    document.getElementById('bginput').click();
+  }
+}
+function hideCalqueModal(){
+  document.getElementById('calque-modal').style.display='none';
+}
+
+// ── Modal saisie personnalisé ────────────────────────────────────────────────
+let _inputModalCallback=null;
+function showInputModal({icon='✏️',title='',sub='',defaultValue='',placeholder='',onOk=null}){
+  _inputModalCallback=onOk;
+  const m=document.getElementById('input-modal');
+  document.getElementById('input-modal-icon').textContent=icon;
+  document.getElementById('input-modal-title').textContent=title;
+  document.getElementById('input-modal-sub').textContent=sub;
+  const f=document.getElementById('input-modal-field');
+  f.value=defaultValue;
+  f.placeholder=placeholder;
+  m.style.display='flex';
+  // réanimer
+  const inner=m.firstElementChild;
+  inner.style.animation='none';
+  requestAnimationFrame(()=>{inner.style.animation='';});
+  setTimeout(()=>{f.focus();f.select();},60);
+}
+function _inputModalConfirm(){
+  const val=document.getElementById('input-modal-field').value;
+  document.getElementById('input-modal').style.display='none';
+  if(_inputModalCallback&&val!==null)_inputModalCallback(val);
+  _inputModalCallback=null;
+}
+function _inputModalCancel(){
+  document.getElementById('input-modal').style.display='none';
+  _inputModalCallback=null;
+}
+document.getElementById('input-modal-ok').addEventListener('click',_inputModalConfirm);
+document.getElementById('input-modal-cancel').addEventListener('click',_inputModalCancel);
+document.getElementById('input-modal-field').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();_inputModalConfirm();}
+  if(e.key==='Escape'){e.preventDefault();_inputModalCancel();}
+});
+document.getElementById('input-modal').addEventListener('mousedown',e=>{
+  if(e.target===document.getElementById('input-modal'))_inputModalCancel();
+});
+function replaceCalque(){
+  hideCalqueModal();
+  document.getElementById('bginput').click();
+}
+function deleteCalque(){
+  hideCalqueModal();
+  bgImage=null;
+  render();
 }
 
 // ── Détection automatique des pièces fermées (flood fill) ──
@@ -947,8 +1086,120 @@ function drawRoomFills(){
 
 let wallColor='#000000';   // couleur des murs (modifiable)
 
+// ── Palette couleurs murs (10 couleurs) ───────────────────
+// Index 0 = noir fixe, index 1-9 = éditables
+const WALL_PALETTE=[
+  {hex:'#000000',label:'Noir',locked:true},
+  {hex:'#555555',label:'Gris foncé'},
+  {hex:'#9e9e9e',label:'Gris'},
+  {hex:'#cc2200',label:'Rouge'},
+  {hex:'#e06000',label:'Orange'},
+  {hex:'#1a44cc',label:'Bleu'},
+  {hex:'#006677',label:'Bleu canard'},
+  {hex:'#2a8c2a',label:'Vert'},
+  {hex:'#5c2800',label:'Marron'},
+  {hex:'#8b008b',label:'Violet'},
+];
+
+function setWallColor(hex){
+  wallColor=hex;
+  const lbl=document.getElementById('wallcolorlbl');
+  const prv=document.getElementById('wall-color-preview');
+  const pk=document.getElementById('wallcolorpicker');
+  const lw=document.getElementById('legwall');
+  if(lbl)lbl.textContent=hex;
+  if(prv)prv.style.background=hex;
+  if(pk)pk.value=hex;
+  if(lw)lw.style.background=hex;
+  updateWallPaletteSelection();
+  render();
+}
+
+function updateWallPaletteSelection_OLD(){
+  // Remplacée par la version dans buildWallPalette
+  WALL_PALETTE.forEach((c,idx)=>{
+    const el=document.getElementById('wc-'+idx);
+    if(!el)return;
+    const sel=wallColor===c.hex;
+    el.style.outline=sel?'2px solid #ffffff':'2px solid transparent';
+  });
+}
+
+function buildWallPalette(){
+  const grid=document.getElementById('wall-palette');
+  if(!grid)return;
+  grid.innerHTML='';
+  WALL_PALETTE.forEach((c,idx)=>{
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:relative;flex-shrink:0';
+    // Carré de couleur
+    const btn=document.createElement('div');
+    btn.id='wc-'+idx;
+    btn.title=c.locked?c.label+' (fixe)':c.label+' — clic pour sélectionner, 2e clic pour modifier';
+    btn.style.cssText=`width:24px;height:24px;background:${c.hex};border-radius:5px;cursor:pointer;outline:2px solid transparent;outline-offset:2px;transition:outline-color .1s,transform .1s`;
+    btn.onmouseenter=()=>{if(wallColor!==c.hex)btn.style.transform='scale(1.15)';};
+    btn.onmouseleave=()=>{btn.style.transform='scale(1)';};
+    btn.onclick=()=>{
+      if(wallColor===c.hex&&!c.locked){
+        // Déjà sélectionné ET non-noir → ouvrir le color picker de ce slot
+        const pk=document.getElementById('wce-'+idx);
+        if(pk)pk.click();
+      } else {
+        setWallColor(c.hex);
+      }
+    };
+    wrap.appendChild(btn);
+    // Input color caché pour les slots éditables
+    if(!c.locked){
+      const pk=document.createElement('input');
+      pk.type='color';pk.id='wce-'+idx;pk.value=c.hex;
+      pk.style.cssText='position:absolute;width:0;height:0;opacity:0;pointer-events:none';
+      pk.oninput=e=>{
+        const newHex=e.target.value;
+        WALL_PALETTE[idx].hex=newHex;
+        btn.style.background=newHex;
+        if(wallColor===c.hex){setWallColor(newHex);}
+        else{c.hex=newHex;}
+      };
+      pk.onchange=e=>{
+        const newHex=e.target.value;
+        WALL_PALETTE[idx].hex=newHex;
+        btn.style.background=newHex;
+        c.hex=newHex;
+        setWallColor(newHex);
+      };
+      wrap.appendChild(pk);
+      // Petite icône crayon en bas à droite (visible au survol)
+      const pen=document.createElement('span');
+      pen.textContent='✏';
+      pen.style.cssText='position:absolute;bottom:-1px;right:-1px;font-size:8px;line-height:1;pointer-events:none;opacity:0;transition:opacity .15s';
+      btn.addEventListener('mouseenter',()=>pen.style.opacity='1');
+      btn.addEventListener('mouseleave',()=>pen.style.opacity='0');
+      wrap.appendChild(pen);
+    } else {
+      // Cadenas sur le noir
+      const lk=document.createElement('span');
+      lk.textContent='🔒';
+      lk.style.cssText='position:absolute;bottom:-2px;right:-2px;font-size:7px;line-height:1;pointer-events:none;filter:invert(1) opacity(.7)';
+      wrap.appendChild(lk);
+    }
+    grid.appendChild(wrap);
+  });
+  updateWallPaletteSelection();
+}
+
+function updateWallPaletteSelection(){
+  WALL_PALETTE.forEach((c,idx)=>{
+    const el=document.getElementById('wc-'+idx);
+    if(!el)return;
+    const sel=wallColor===c.hex;
+    el.style.outline=sel?'2px solid #ffffff':'2px solid transparent';
+    el.style.outlineOffset='2px';
+  });
+}
+
 // ── Meubles ───────────────────────────────────────────────
-let furnitures=[];
+// furnitures déclaré en tête avec les tableaux globaux
 let selectedFurnType='table';
 const FURN_DEFS={
   table:  {label:'Table',    fw:120,fh:80},
@@ -1119,7 +1370,7 @@ function drawWall(w,alpha){
   const sel=SEL&&SEL.id===w.id;
   const curved=w.cx!==undefined||w.cx1!==undefined;
   if(alpha!==undefined) cx.globalAlpha=alpha;
-  cx.strokeStyle=sel?'#3a9fff':wallColor;
+  cx.strokeStyle=sel?'#3a9fff':(w.color||wallColor);
   cx.lineWidth=WALL_W*zoom;
   cx.lineCap=curved?'round':'square';
   cx.beginPath();cx.moveTo(s.x,s.y);
@@ -1182,7 +1433,7 @@ function drawDoor(d,isPreview){
 
   if(!isPreview) eraseWallUnder(d);
 
-  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':wallColor);
+  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':(d.color||wallColor));
   cx.lineWidth=1.8*zoom;cx.setLineDash([]);
   const half=len/2;
 
@@ -1226,7 +1477,7 @@ function drawWin(w,isPreview){
   cx.moveTo(s.x+nx*th,s.y+ny*th);cx.lineTo(e.x+nx*th,e.y+ny*th);
   cx.lineTo(e.x-nx*th,e.y-ny*th);cx.lineTo(s.x-nx*th,s.y-ny*th);
   cx.closePath();cx.fill();
-  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':wallColor);cx.lineWidth=1.5*zoom;
+  cx.strokeStyle=isPreview?'#3a9fff':(sel?'#3a9fff':(w.color||wallColor));cx.lineWidth=1.5*zoom;
   for(const t of[-.5,0,.5]){
     const off=t*th*.9;
     cx.beginPath();cx.moveTo(s.x+nx*off,s.y+ny*off);cx.lineTo(e.x+nx*off,e.y+ny*off);cx.stroke();
@@ -1326,8 +1577,9 @@ function d2ruePts(wx,wy,r){
 }
 // Normale et point au param t d'une rue pts-based (approx via sampling)
 function midInfoRuePts(r){
-  const s=sampleCatmullRom(r.pts,40);if(!s.length)return null;
+  const s=sampleCatmullRom(r.pts,40);if(s.length<2)return null;
   const mi=Math.floor(s.length/2);
+  // Tangente correcte (différence centrale sûre)
   const prev=mi>0?s[mi-1]:s[0],next=mi<s.length-1?s[mi+1]:s[s.length-1];
   const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
   return{x:s[mi].x,y:s[mi].y,nx:-tgy/tgl,ny:tgx/tgl,sampled:s};
@@ -1392,8 +1644,8 @@ function drawCam(c){
   const poly=computeVisiPoly(c.x,c.y,c.angle,liveFovL,liveFovR,range);
   const camIdx=(c.num-1)%CAM_CONE_COLORS.length;
   const [cFill,cStroke]=CAM_CONE_COLORS[camIdx];
-  cx.fillStyle=sel?cFill.replace('.18','.32'):cFill;
-  cx.strokeStyle=sel?cStroke:cStroke.replace('.7','.45');cx.lineWidth=1*zoom;
+  cx.fillStyle=sel?cFill.replace('.42','.60'):cFill;
+  cx.strokeStyle=sel?cStroke:cStroke.replace('.88','.65');cx.lineWidth=1*zoom;
   cx.beginPath();cx.moveTo(sc.x,sc.y);
   poly.forEach(p=>{const ps=w2s(p.x,p.y);cx.lineTo(ps.x,ps.y);});
   cx.closePath();cx.fill();cx.stroke();
@@ -1409,8 +1661,8 @@ function drawCamAt(scx,scy,angle,fov,num,sel,range){
   const poly=computeVisiPoly(wx,wy,angle,hf,hf,r);
   const ci=(cams.length)%CAM_CONE_COLORS.length;
   const[cFP,cSP]=CAM_CONE_COLORS[ci];
-  cx.fillStyle=cFP.replace('.18','.22');
-  cx.strokeStyle=cSP.replace('.7','.55');cx.lineWidth=1*zoom;
+  cx.fillStyle=cFP.replace('.42','.50');
+  cx.strokeStyle=cSP.replace('.88','.70');cx.lineWidth=1*zoom;
   cx.beginPath();cx.moveTo(scx,scy);
   poly.forEach(p=>{const ps=w2s(p.x,p.y);cx.lineTo(ps.x,ps.y);});
   cx.closePath();cx.fill();cx.stroke();
@@ -1446,12 +1698,15 @@ function drawPreview(prev){
   const pr=projOnWall(prev.wx,prev.wy,nw);
   // Tailles standard françaises : porte 83cm, double 126cm, fenêtre 100cm
   const hw=prev.type==='door'?41.5:prev.type==='door2'?63:50;
+  // Côté d'ouverture déterminé par la position de la souris (même logique que placeDoor)
+  const _nx=-pr.uy,_ny=pr.ux;
+  const _op=(prev.wx-pr.x)*_nx+(prev.wy-pr.y)*_ny>=0?1:-1;
   const el={
     t:prev.type==='window'?'win':'door',
     dt:prev.type==='door2'?'double':'single',
     x1:pr.x-pr.ux*hw, y1:pr.y-pr.uy*hw,
     x2:pr.x+pr.ux*hw, y2:pr.y+pr.uy*hw,
-    opens:1
+    opens:_op
   };
   cx.save();cx.globalAlpha=0.65;
   if(el.t==='win') drawWin(el,true);
@@ -1523,22 +1778,32 @@ cv.addEventListener('mousedown',e=>{
       if(SEL.pts){
         const ep1=w2s(SEL.pts[0].x,SEL.pts[0].y);
         const ep2=w2s(SEL.pts[SEL.pts.length-1].x,SEL.pts[SEL.pts.length-1].y);
-        if(Math.hypot(p.sx-ep1.x,p.sy-ep1.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:1};return;}
-        if(Math.hypot(p.sx-ep2.x,p.sy-ep2.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:2};return;}
+        if(Math.hypot(p.sx-ep1.x,p.sy-ep1.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:1,linked:findLinkedRueEnds(SEL,SEL.pts[0].x,SEL.pts[0].y)};return;}
+        if(Math.hypot(p.sx-ep2.x,p.sy-ep2.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:2,linked:findLinkedRueEnds(SEL,SEL.pts[SEL.pts.length-1].x,SEL.pts[SEL.pts.length-1].y)};return;}
       } else {
         const ep1=w2s(SEL.x1,SEL.y1),ep2=w2s(SEL.x2,SEL.y2);
-        if(Math.hypot(p.sx-ep1.x,p.sy-ep1.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:1};return;}
-        if(Math.hypot(p.sx-ep2.x,p.sy-ep2.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:2};return;}
+        if(Math.hypot(p.sx-ep1.x,p.sy-ep1.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:1,linked:findLinkedRueEnds(SEL,SEL.x1,SEL.y1)};return;}
+        if(Math.hypot(p.sx-ep2.x,p.sy-ep2.y)<10){saveHistory();resizingRueEndpoint={rue:SEL,end:2,linked:findLinkedRueEnds(SEL,SEL.x2,SEL.y2)};return;}
       }
     }
-    // Courbe de mur ou de rue non-pts : clic sur le handle diamant
-    if(SEL&&(SEL.t==='wall'||SEL.t==='rue')&&!SEL.pts){
+    // Courbe de mur : clic sur le handle diamant (pas pour les rues)
+    if(SEL&&SEL.t==='wall'&&!SEL.pts){
       let hx,hy;
       if(SEL.cx!==undefined){const p2=bezQPt(0.5,SEL.x1,SEL.y1,SEL.cx,SEL.cy,SEL.x2,SEL.y2);hx=p2.x;hy=p2.y;}
       else if(SEL.cx1!==undefined){const t2=0.5,mt2=0.5;hx=mt2*mt2*mt2*SEL.x1+3*mt2*mt2*t2*SEL.cx1+3*mt2*t2*t2*SEL.cx2+t2*t2*t2*SEL.x2;hy=mt2*mt2*mt2*SEL.y1+3*mt2*mt2*t2*SEL.cy1+3*mt2*t2*t2*SEL.cy2+t2*t2*t2*SEL.y2;}
       else{hx=(SEL.x1+SEL.x2)/2;hy=(SEL.y1+SEL.y2)/2;}
       const hs=w2s(hx,hy);
       if(Math.hypot(p.sx-hs.x,p.sy-hs.y)<12){saveHistory();resizingWallCurve=SEL;return;}
+    }
+    // (0b) Clic sur label de cote du mur sélectionné
+    if(SEL&&SEL.t==='wall'&&wallDimLabelBBox){
+      const b=wallDimLabelBBox;
+      if(p.sx>=b.x&&p.sx<=b.x+b.w&&p.sy>=b.y&&p.sy<=b.y+b.h){
+        wallLabelActive=true;wallInput='';render();return;
+      } else if(wallLabelActive){
+        // Clic ailleurs → appliquer et fermer
+        applyWallInput();wallLabelActive=false;wallInput='';render();
+      }
     }
     // (0) Clic sur label éditable caméra sélectionnée
     if(SEL&&SEL.t==='cam'){
@@ -1625,7 +1890,7 @@ cv.addEventListener('mousedown',e=>{
       else                     dragOffset={x:p.wx-(hit.x||hit.x1||0), y:p.wy-(hit.y||hit.y1||0)};
       updatePropPanel();render();
     } else {
-      SEL=null;wallInput='';camSelField=null;camSelInput='';updatePropPanel();render();
+      SEL=null;wallInput='';wallLabelActive=false;wallDimLabelBBox=null;camSelField=null;camSelInput='';updatePropPanel();render();
     }
     return;
   }
@@ -1682,16 +1947,24 @@ cv.addEventListener('mousedown',e=>{
   }
   else if(tool==='label'){
     saveHistory();
-    const txt=prompt('Texte :','Bureau');
-    if(txt){lbls.push({id:nid(),t:'lbl',x:p.wx,y:p.wy,text:txt,sz:14});SEL=null;render();}
+    const _px=p.wx,_py=p.wy;
+    showInputModal({icon:'🏷️',title:'Ajouter une étiquette',sub:'Saisissez le texte à afficher sur le plan',defaultValue:'Bureau',placeholder:'Ex : Bureau, Couloir, Entrée…',onOk:txt=>{
+      if(txt.trim()){lbls.push({id:nid(),t:'lbl',x:_px,y:_py,text:txt.trim(),sz:14});SEL=null;render();}
+    }});
   }
   else if(tool==='furn'){
     const def=FURN_DEFS[selectedFurnType]||FURN_DEFS.table;
     let fname='';
     if(selectedFurnType==='libre'){
-      const raw=prompt('Nom du meuble :','Élément');
-      if(raw===null) return; // annulé
-      fname=raw.trim()||'Élément';
+      const _fpx=p.rwx,_fpy=p.rwy,_fdef=def;
+      showInputModal({icon:'🪑',title:'Nouvel élément',sub:'Donnez un nom à cet élément de mobilier',defaultValue:'Élément',placeholder:'Ex : Bureau, Armoire, Canapé…',onOk:raw=>{
+        if(raw===null)return;
+        const nm=raw.trim()||'Élément';
+        saveHistory();
+        furnitures.push({id:nid(),t:'furn',ftype:selectedFurnType,x:_fpx,y:_fpy,fw:_fdef.fw,fh:_fdef.fh,angle:0,name:nm});
+        render();
+      }});
+      return;
     }
     saveHistory();
     furnitures.push({id:nid(),t:'furn',ftype:selectedFurnType,x:p.rwx,y:p.rwy,fw:def.fw,fh:def.fh,angle:0,name:fname||undefined});
@@ -1737,20 +2010,20 @@ cv.addEventListener('mousedown',e=>{
     } else {
       const dist=Math.hypot(p.rwx-scalePt1.x,p.rwy-scalePt1.y);
       if(dist>5){
-        const raw=prompt('Distance réelle entre les 2 points (m) :','');
-        const meters=parseFloat((raw||'').replace(',','.'));
-        if(meters>0){
-          // 100 unités monde = 1m → distance réelle en unités monde
-          const realUnits=meters*100;
-          const k=realUnits/dist;
-          // Redimensionner le calque en gardant scalePt1 fixe
-          bgX=scalePt1.x-(scalePt1.x-bgX)*k;
-          bgY=scalePt1.y-(scalePt1.y-bgY)*k;
-          bgW*=k; bgH*=k;
-          const ratio=Math.round(100/k*100)/100;
-          document.getElementById('scalelbl').textContent=`Calque mis à l'échelle (×${k.toFixed(3)})`;
-          document.getElementById('stool').textContent=`Calque mis à l'échelle`;
-        }
+        const _sp1=scalePt1,_dist=dist;
+        showInputModal({icon:'📐',title:'Calibration de l\'échelle',sub:'Entrez la distance réelle entre les 2 points cliqués',defaultValue:'',placeholder:'Ex : 3.5 ou 3,5 (en mètres)',onOk:raw=>{
+          const meters=parseFloat((raw||'').replace(',','.'));
+          if(meters>0){
+            const realUnits=meters*100;
+            const k=realUnits/_dist;
+            bgX=_sp1.x-(_sp1.x-bgX)*k;
+            bgY=_sp1.y-(_sp1.y-bgY)*k;
+            bgW*=k; bgH*=k;
+            const _sl=document.getElementById('scalelbl');if(_sl)_sl.textContent=`Calque mis à l'échelle (×${k.toFixed(3)})`;
+            document.getElementById('stool').textContent=`Calque mis à l'échelle`;
+            render();
+          }
+        }});
       }
       scalePt1=null;
       setTool('select');
@@ -1934,15 +2207,21 @@ cv.addEventListener('mousemove',e=>{
   }
   // Resize longueur d'une rue (déplacer un endpoint)
   if(resizingRueEndpoint){
-    const{rue,end}=resizingRueEndpoint;
+    const{rue,end,linked}=resizingRueEndpoint;
+    const nx=p.wx,ny=p.wy;
     if(rue.pts){
-      if(end===1)rue.pts[0]={x:p.wx,y:p.wy};
-      else rue.pts[rue.pts.length-1]={x:p.wx,y:p.wy};
+      if(end===1)rue.pts[0]={x:nx,y:ny};
+      else rue.pts[rue.pts.length-1]={x:nx,y:ny};
     } else {
-      if(end===1){rue.x1=p.wx;rue.y1=p.wy;}
-      else{rue.x2=p.wx;rue.y2=p.wy;}
+      if(end===1){rue.x1=nx;rue.y1=ny;}
+      else{rue.x2=nx;rue.y2=ny;}
       delete rue.cx;delete rue.cy;
     }
+    // Déplacer les endpoints connectés
+    if(linked){for(const{r2,end:e2} of linked){
+      if(r2.pts){if(e2===1)r2.pts[0]={x:nx,y:ny};else r2.pts[r2.pts.length-1]={x:nx,y:ny};}
+      else{if(e2===1){r2.x1=nx;r2.y1=ny;}else{r2.x2=nx;r2.y2=ny;}delete r2.cx;delete r2.cy;}
+    }}
     render();return;
   }
   // Drag resize porte/fenêtre
@@ -1995,7 +2274,7 @@ cv.addEventListener('click',e=>{
   if(tool==='wall'&&wallPts.length>=2){
     saveHistory();
     const a=wallPts[wallPts.length-2],b=wallPts[wallPts.length-1];
-    walls.push({id:nid(),t:'wall',x1:a.x,y1:a.y,x2:b.x,y2:b.y});
+    walls.push({id:nid(),t:'wall',x1:a.x,y1:a.y,x2:b.x,y2:b.y,color:wallColor});
     splitWallsAtJunctions();
     deduplicateWalls();
     wallPts=[];render(); // 2-clic : mur terminé, on repart de zéro
@@ -2007,8 +2286,7 @@ cv.addEventListener('dblclick',e=>{
   if(tool==='rue'&&selectedRueType==='courbe'&&rueBsplinePts.length>=2){finalizeRueBspline();return;}
   if(tool==='wall'&&wallPts.length>0){wallPts=[];render();}
   if(SEL){
-    if(SEL.t==='lbl'){const t=prompt('Texte :',SEL.text);if(t!==null){SEL.text=t;render();}}
-    if(SEL.t==='cam'){const f=prompt('Angle de vue (°):',SEL.fov||70);if(f!==null){SEL.fov=+f;render();}}
+    if(SEL.t==='lbl'){const _lbl=SEL;showInputModal({icon:'🏷️',title:'Modifier l\'étiquette',sub:'Modifiez le texte affiché sur le plan',defaultValue:_lbl.text,placeholder:'Ex : Bureau, Couloir…',onOk:t=>{if(t.trim()){_lbl.text=t.trim();render();}}});}
     if(SEL.t==='door'){SEL.opens*=-1;render();}
     if(SEL.t==='wall'&&(SEL.cx!==undefined||SEL.cx1!==undefined)){
       // Vérifier si dblclic près du handle de courbure
@@ -2046,8 +2324,8 @@ cv.addEventListener('dblclick',e=>{
   const dp=s2w(e.clientX-r2.left,e.clientY-r2.top);
   for(const room of autoRooms){
     if(Math.hypot(dp.x-room.cx,dp.y-room.cy)<G.sz*6){
-      const t=prompt('Nom de la pièce :',autoRoomLabels[room.key]||'');
-      if(t!==null){autoRoomLabels[room.key]=t;render();}
+      const _rk=room.key;
+      showInputModal({icon:'🏠',title:'Nom de la pièce',sub:'Entrez le nom qui s\'affichera au centre de cette pièce',defaultValue:autoRoomLabels[_rk]||'',placeholder:'Ex : Salon, Chambre 1, Cuisine…',onOk:t=>{autoRoomLabels[_rk]=t;render();}});
       return;
     }
   }
@@ -2072,8 +2350,8 @@ document.addEventListener('keydown',e=>{
   // R = rotation 90° si un meuble est sélectionné
   else if(k==='r'&&SEL&&SEL.t==='furn'){saveHistory();SEL.angle=(SEL.angle||0)+Math.PI/2;render();}
   else if(k==='m')toggleFurnPanel();
-  else if(k==='p')setTool('door');
-  else if(k==='d')setTool('door2');
+  else if(k==='p')toggleDoorPanel();
+  else if(k==='d'){selectDoorSubType('double');}
   else if(k==='f')setTool('window');
   else if(k==='c')setTool('camera');
   else if(k==='t')setTool('label');
@@ -2084,7 +2362,7 @@ document.addEventListener('keydown',e=>{
     wallPts=[];roomSt=null;camSt=null;hoverPreview=null;SEL=null;bsplinePts=[];
     rueSt=null;rueInput='';rueLockedW=null;rueAngleSnap=null;rueBsplinePts=[];
     resizingRueWidth=null;resizingRueEndpoint=null;
-    wallInput='';roomLockedX=null;roomInput='';scalePt1=null;
+    wallInput='';wallLabelActive=false;wallDimLabelBBox=null;roomLockedX=null;roomInput='';scalePt1=null;
     camInput='';camInputMode='angle';camLockedFov=null;resizingCam=null;
     camSelField=null;camSelInput='';
     updatePropPanel();render();
@@ -2152,40 +2430,7 @@ document.addEventListener('keydown',e=>{
     camSelField=null;camSelInput='';render();
   }
   // ── Entrée : appliquer longueur mur (tracé ou sélection) ──
-  else if(k==='enter'&&wallInput){
-    const wu=parseFloat(wallInput.replace(',','.'))*1000/worldScale;
-    if(wu>0){
-      if(tool==='wall'&&wallPts.length>0){
-        const last=wallPts[wallPts.length-1];
-        const dx=mx-last.x,dy=my-last.y,d=Math.hypot(dx,dy)||1;
-        const ex=last.x+dx/d*wu,ey=last.y+dy/d*wu;
-        saveHistory();walls.push({id:nid(),t:'wall',x1:last.x,y1:last.y,x2:ex,y2:ey});
-        splitWallsAtJunctions();deduplicateWalls();wallPts=[];
-      } else if(SEL&&(SEL.t==='door'||SEL.t==='win')){
-        // Resize depuis le centre (symétrique)
-        const mcx=(SEL.x1+SEL.x2)/2,mcy=(SEL.y1+SEL.y2)/2;
-        const dx=SEL.x2-SEL.x1,dy=SEL.y2-SEL.y1,d=Math.hypot(dx,dy)||1;
-        const half=wu/2;
-        saveHistory();
-        SEL.x1=mcx-dx/d*half;SEL.y1=mcy-dy/d*half;
-        SEL.x2=mcx+dx/d*half;SEL.y2=mcy+dy/d*half;
-      } else if(SEL&&SEL.t==='wall'){
-        const dx=SEL.x2-SEL.x1,dy=SEL.y2-SEL.y1,d=Math.hypot(dx,dy)||1;
-        const ox2=SEL.x2,oy2=SEL.y2; // ancien endpoint mobile
-        saveHistory();
-        SEL.x2=SEL.x1+dx/d*wu; SEL.y2=SEL.y1+dy/d*wu;
-        // Déplacer les murs connectés à l'ancien x2,y2
-        const eps=1;
-        walls.forEach(w=>{
-          if(w.id===SEL.id)return;
-          if(Math.abs(w.x1-ox2)<eps&&Math.abs(w.y1-oy2)<eps){w.x1=SEL.x2;w.y1=SEL.y2;}
-          if(Math.abs(w.x2-ox2)<eps&&Math.abs(w.y2-oy2)<eps){w.x2=SEL.x2;w.y2=SEL.y2;}
-        });
-        splitWallsAtJunctions();deduplicateWalls();
-      }
-    }
-    wallInput='';render();
-  }
+  else if(k==='enter'&&wallInput){applyWallInput();}
   else if(k==='enter'&&tool==='wall'&&wallPts.length>0){wallPts=[];render();}
   // ── Entrée pièce : verrouille largeur (phase 1) ou crée la pièce (phase 2) ──
   else if(k==='enter'&&tool==='room'&&roomSt){
@@ -2235,7 +2480,8 @@ document.addEventListener('keydown',e=>{
   // Resize mur/porte/fenêtre : uniquement en mode select ou tracé de mur
   else if(/^[0-9.,]$/.test(e.key)&&(
     (tool==='wall'&&wallPts.length>0)||
-    (tool==='select'&&SEL&&(SEL.t==='wall'||SEL.t==='door'||SEL.t==='win'))
+    (wallLabelActive&&SEL&&SEL.t==='wall')||
+    (tool==='select'&&SEL&&(SEL.t==='door'||SEL.t==='win'))
   )){wallInput+=e.key;render();}
   else if(/^[0-9.,]$/.test(e.key)&&tool==='room'&&roomSt){
     roomInput+=e.key;render();
@@ -2255,10 +2501,10 @@ document.addEventListener('keydown',e=>{
 function addRoom(x1,y1,x2,y2){
   const lx=Math.min(x1,x2),rx=Math.max(x1,x2),ty=Math.min(y1,y2),by=Math.max(y1,y2);
   rooms.push({id:nid(),t:'room',x1:lx,y1:ty,x2:rx,y2:by}); // remplissage beige
-  walls.push({id:nid(),t:'wall',x1:lx,y1:ty,x2:rx,y2:ty});
-  walls.push({id:nid(),t:'wall',x1:rx,y1:ty,x2:rx,y2:by});
-  walls.push({id:nid(),t:'wall',x1:rx,y1:by,x2:lx,y2:by});
-  walls.push({id:nid(),t:'wall',x1:lx,y1:by,x2:lx,y2:ty});
+  walls.push({id:nid(),t:'wall',x1:lx,y1:ty,x2:rx,y2:ty,color:wallColor});
+  walls.push({id:nid(),t:'wall',x1:rx,y1:ty,x2:rx,y2:by,color:wallColor});
+  walls.push({id:nid(),t:'wall',x1:rx,y1:by,x2:lx,y2:by,color:wallColor});
+  walls.push({id:nid(),t:'wall',x1:lx,y1:by,x2:lx,y2:ty,color:wallColor});
   splitWallsAtJunctions();
   deduplicateWalls();
 }
@@ -2327,7 +2573,11 @@ function projOnWall(wx,wy,w){
 
 function placeDoor(w,wx,wy,dt){
   const pr=projOnWall(wx,wy,w),hw=dt==='double'?3*G.sz:2*G.sz;
-  doors.push({id:nid(),t:'door',dt,x1:pr.x-pr.ux*hw,y1:pr.y-pr.uy*hw,x2:pr.x+pr.ux*hw,y2:pr.y+pr.uy*hw,opens:1});
+  // Détermine automatiquement le côté d'ouverture selon le côté du clic par rapport au mur
+  const nx=-pr.uy,ny=pr.ux;
+  const dot=(wx-pr.x)*nx+(wy-pr.y)*ny;
+  const op=dot>=0?1:-1;
+  doors.push({id:nid(),t:'door',dt,x1:pr.x-pr.ux*hw,y1:pr.y-pr.uy*hw,x2:pr.x+pr.ux*hw,y2:pr.y+pr.uy*hw,opens:op});
 }
 function freeDoor(x,y,dt){
   const hw=dt==='double'?3*G.sz:2*G.sz;
@@ -2552,20 +2802,23 @@ function moveEl(el,dx,dy){
     return;
   }
   if(el.t==='rue'){
-    if(el.pts){el.pts=el.pts.map(p=>({x:p.x+dx,y:p.y+dy}));return;}
+    const eps=8;
+    if(el.pts){
+      // Mémoriser les anciens endpoints avant déplacement
+      const n=el.pts.length;
+      const oldE1={x:el.pts[0].x,y:el.pts[0].y};
+      const oldE2={x:el.pts[n-1].x,y:el.pts[n-1].y};
+      el.pts=el.pts.map(pp=>({x:pp.x+dx,y:pp.y+dy}));
+      const newE1=el.pts[0],newE2=el.pts[n-1];
+      moveLinkedRueEnds(el,oldE1,newE1);
+      moveLinkedRueEnds(el,oldE2,newE2);
+      return;
+    }
     const ox1=el.x1,oy1=el.y1,ox2=el.x2,oy2=el.y2;
     el.x1+=dx;el.y1+=dy;el.x2+=dx;el.y2+=dy;
     if(el.cx!==undefined){el.cx+=dx;el.cy+=dy;}
-    // Déplacer les extrémités des rues connectées (partageant un endpoint)
-    const eps=1.5;
-    for(const r2 of rues){
-      if(r2.id===el.id)continue;
-      if(r2.pts)continue; // ne pas chaîner les rues pts
-      if(Math.hypot(r2.x1-ox1,r2.y1-oy1)<eps){r2.x1+=dx;r2.y1+=dy;delete r2.cx;delete r2.cy;}
-      else if(Math.hypot(r2.x1-ox2,r2.y1-oy2)<eps){r2.x1+=dx;r2.y1+=dy;delete r2.cx;delete r2.cy;}
-      if(Math.hypot(r2.x2-ox1,r2.y2-oy1)<eps){r2.x2+=dx;r2.y2+=dy;delete r2.cx;delete r2.cy;}
-      else if(Math.hypot(r2.x2-ox2,r2.y2-oy2)<eps){r2.x2+=dx;r2.y2+=dy;delete r2.cx;delete r2.cy;}
-    }
+    moveLinkedRueEnds(el,{x:ox1,y:oy1},{x:el.x1,y:el.y1});
+    moveLinkedRueEnds(el,{x:ox2,y:oy2},{x:el.x2,y:el.y2});
     return;
   }
   if(el.t==='cam'||el.t==='lbl'||el.t==='furn'){
@@ -2730,8 +2983,8 @@ function splitWallsAtJunctions(){
           const qx=w.x1+t*dx,qy=w.y1+t*dy;
           if(Math.abs(qx-px)<0.6&&Math.abs(qy-py)<0.6){
             // Le point (px,py) est SUR le mur i → on le coupe en deux
-            const a={id:nid(),t:'wall',x1:w.x1,y1:w.y1,x2:px,y2:py};
-            const b={id:nid(),t:'wall',x1:px,y1:py,x2:w.x2,y2:w.y2};
+            const a={id:nid(),t:'wall',x1:w.x1,y1:w.y1,x2:px,y2:py,color:w.color};
+            const b={id:nid(),t:'wall',x1:px,y1:py,x2:w.x2,y2:w.y2,color:w.color};
             walls.splice(i,1,a,b);
             changed=true;
             continue outer;
@@ -2796,7 +3049,7 @@ function finalizeBSpline(pts){
     const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
     const cp1x=p1.x+(p2.x-p0.x)*alpha,cp1y=p1.y+(p2.y-p0.y)*alpha;
     const cp2x=p2.x-(p3.x-p1.x)*alpha,cp2y=p2.y-(p3.y-p1.y)*alpha;
-    walls.push({id:nid(),t:'wall',x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,cx1:cp1x,cy1:cp1y,cx2:cp2x,cy2:cp2y});
+    walls.push({id:nid(),t:'wall',x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,cx1:cp1x,cy1:cp1y,cx2:cp2x,cy2:cp2y,color:wallColor});
   }
   autoRoomsDirty=true;
 }
@@ -2850,12 +3103,9 @@ function toggleFurnPanel(){
 function toggleWallPanel(){
   const panel=document.getElementById('wall-panel');
   const visible=panel.style.display!=='none';
-  document.getElementById('rue-panel').style.display='none';
-  document.getElementById('furn-panel').style.display='none';
-  if(visible){panel.style.display='none';}
-  else{
+  _closeAllPanels();
+  if(!visible){
     panel.style.display='block';
-    // Mettre en valeur le sous-type actif
     document.getElementById('wbtn-droit').classList.toggle('fsel',tool==='wall');
     document.getElementById('wbtn-courbe').classList.toggle('fsel',tool==='bspline');
   }
@@ -2867,13 +3117,13 @@ function selectWallType(t){
 function toggleRuePanel(){
   const panel=document.getElementById('rue-panel');
   const visible=panel.style.display!=='none';
-  document.getElementById('wall-panel').style.display='none';
-  document.getElementById('furn-panel').style.display='none';
-  if(visible){panel.style.display='none';if(tool==='rue')setTool('select');}
-  else{
+  _closeAllPanels();
+  if(!visible){
     panel.style.display='block';
     document.getElementById('rbtn-droite').classList.toggle('fsel',selectedRueType==='droite');
     document.getElementById('rbtn-courbe').classList.toggle('fsel',selectedRueType==='courbe');
+  } else {
+    if(tool==='rue')setTool('select');
   }
 }
 function selectRueType(type){
@@ -2882,9 +3132,495 @@ function selectRueType(type){
   setTool('rue');
 }
 
+function _closeAllPanels(){
+  ['wall-panel','rue-panel','furn-panel','door-panel','couche-panel'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+}
+function toggleDoorPanel(){
+  const panel=document.getElementById('door-panel');
+  const visible=panel.style.display!=='none';
+  _closeAllPanels();
+  if(!visible){
+    panel.style.display='block';
+    _updateDoorPanel();
+    // activer le tool correspondant au sous-type actuel
+    setTool(doorSubType==='double'?'door2':'door');
+  }
+}
+function _updateDoorPanel(){
+  document.getElementById('dbtn-simple').classList.toggle('fsel',doorSubType==='single');
+  document.getElementById('dbtn-double').classList.toggle('fsel',doorSubType==='double');
+}
+function selectDoorSubType(type){
+  doorSubType=type;
+  _updateDoorPanel();
+  setTool(type==='double'?'door2':'door');
+}
+function toggleCouchePanel(){
+  const panel=document.getElementById('couche-panel');
+  const visible=panel.style.display!=='none';
+  _closeAllPanels();
+  if(!visible){panel.style.display='block';updateLayerPanel();}
+}
+
+// ── Gestion des couches ───────────────────────────────────
+let _layerCtr=1;
+function _saveCurrentLayer(){
+  const L=layers[activeLayerIdx];if(!L)return;
+  L.walls=walls;L.doors=doors;L.wins=wins;L.cams=cams;
+  L.lbls=lbls;L.rooms=rooms;L.furnitures=furnitures;L.rues=rues;
+  L.history=history;L.autoRoomLabels=autoRoomLabels;
+}
+function _loadLayerData(L){
+  walls=L.walls;doors=L.doors;wins=L.wins;cams=L.cams;
+  lbls=L.lbls;rooms=L.rooms;furnitures=L.furnitures;rues=L.rues;
+  history=L.history;
+  // autoRoomLabels : objet par référence
+  Object.keys(autoRoomLabels).forEach(k=>delete autoRoomLabels[k]);
+  Object.assign(autoRoomLabels,L.autoRoomLabels||{});
+}
+function switchToLayer(idx){
+  if(idx<0||idx>=layers.length||idx===activeLayerIdx)return;
+  _saveCurrentLayer();
+  activeLayerIdx=idx;
+  _loadLayerData(layers[idx]);
+  SEL=null;autoRoomsDirty=true;
+  updateLayerPanel();render();
+}
+function addLayer(){
+  _saveCurrentLayer();
+  const n=layers.length+1;
+  const L={id:'L'+(++_layerCtr)+'_'+Date.now(),name:'Couche '+n,
+    walls:[],doors:[],wins:[],cams:[],lbls:[],rooms:[],furnitures:[],rues:[],
+    history:[],autoRoomLabels:{}};
+  layers.push(L);
+  activeLayerIdx=layers.length-1;
+  _loadLayerData(L);
+  SEL=null;autoRoomsDirty=true;
+  updateLayerPanel();render();
+}
+function deleteLayerAt(idx){
+  if(layers.length<=1)return; // ne pas supprimer la dernière
+  layers.splice(idx,1);
+  if(activeLayerIdx>=layers.length)activeLayerIdx=layers.length-1;
+  _loadLayerData(layers[activeLayerIdx]);
+  SEL=null;autoRoomsDirty=true;
+  updateLayerPanel();render();
+}
+
+let _layerDragSrc=-1;
+function updateLayerPanel(){
+  const list=document.getElementById('layer-list');
+  if(!list)return;
+  list.innerHTML='';
+  // Afficher de haut (dernier index) vers bas (index 0) — comme un éditeur d'image
+  for(let vi=layers.length-1;vi>=0;vi--){
+    const L=layers[vi];
+    const isActive=vi===activeLayerIdx;
+    const item=document.createElement('div');
+    item.className='layer-item'+(isActive?' lactive':'');
+    item.draggable=true;
+    item.dataset.idx=vi;
+
+    // Poignée de glissement
+    const dh=document.createElement('span');
+    dh.className='layer-drag';dh.textContent='⠿';dh.title='Glisser pour réordonner';
+
+    // Nom (double-clic = renommer)
+    const nm=document.createElement('span');
+    nm.className='layer-name';nm.textContent=L.name;nm.title='Double-clic pour renommer';
+    nm.addEventListener('dblclick',e=>{
+      e.stopPropagation();
+      const inp=document.createElement('input');
+      inp.value=L.name;
+      inp.style.cssText='background:#0a1a30;border:1px solid #3a9fff;color:white;font-size:11px;width:100%;border-radius:3px;padding:1px 4px;outline:none';
+      nm.replaceWith(inp);inp.focus();inp.select();
+      const commit=()=>{if(inp.value.trim())L.name=inp.value.trim();updateLayerPanel();};
+      inp.addEventListener('blur',commit);
+      inp.addEventListener('keydown',e2=>{if(e2.key==='Enter')commit();if(e2.key==='Escape')updateLayerPanel();});
+    });
+
+    // Bouton supprimer
+    const del=document.createElement('button');
+    del.className='layer-del';del.textContent='✕';del.title='Supprimer cette couche';
+    del.style.display=layers.length>1?'':'none';
+    del.addEventListener('click',e=>{e.stopPropagation();deleteLayerAt(vi);});
+
+    item.append(dh,nm,del);
+    item.addEventListener('click',()=>switchToLayer(vi));
+
+    // Drag-to-reorder
+    item.addEventListener('dragstart',e=>{
+      _layerDragSrc=vi;e.dataTransfer.effectAllowed='move';
+      setTimeout(()=>item.style.opacity='.4',0);
+    });
+    item.addEventListener('dragend',()=>{item.style.opacity='';});
+    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('ldragover');});
+    item.addEventListener('dragleave',()=>item.classList.remove('ldragover'));
+    item.addEventListener('drop',e=>{
+      e.preventDefault();item.classList.remove('ldragover');
+      const src=_layerDragSrc,dst=vi;
+      if(src===dst)return;
+      const activeId=layers[activeLayerIdx].id;
+      const moved=layers.splice(src,1)[0];
+      layers.splice(src<dst?dst-1:dst,0,moved);
+      activeLayerIdx=layers.findIndex(l=>l.id===activeId);
+      updateLayerPanel();
+    });
+    list.appendChild(item);
+  }
+}
+
+// ── Helpers jonctions de rues ────────────────────────────
+const RUE_EPS=8; // tolérance monde pour "même point"
+
+function getRueEpPt(r,end){ // end=1|2 → coordonnée de l'endpoint
+  if(r.pts){return end===1?r.pts[0]:r.pts[r.pts.length-1];}
+  return end===1?{x:r.x1,y:r.y1}:{x:r.x2,y:r.y2};
+}
+
+// Retourne tous les endpoints d'autres rues qui touchent (ox,oy)
+function findLinkedRueEnds(srcRue,ox,oy){
+  const linked=[];
+  for(const r2 of rues){
+    if(r2.id===srcRue.id)continue;
+    const e1=getRueEpPt(r2,1),e2=getRueEpPt(r2,2);
+    if(Math.hypot(e1.x-ox,e1.y-oy)<RUE_EPS)linked.push({r2,end:1});
+    if(Math.hypot(e2.x-ox,e2.y-oy)<RUE_EPS)linked.push({r2,end:2});
+  }
+  return linked;
+}
+
+// Déplace les endpoints connectés d'oldPt vers newPt (sauf srcRue)
+function moveLinkedRueEnds(srcRue,oldPt,newPt){
+  for(const r2 of rues){
+    if(r2.id===srcRue.id)continue;
+    if(r2.pts){
+      const n=r2.pts.length;
+      if(Math.hypot(r2.pts[0].x-oldPt.x,r2.pts[0].y-oldPt.y)<RUE_EPS)r2.pts[0]={x:newPt.x,y:newPt.y};
+      if(Math.hypot(r2.pts[n-1].x-oldPt.x,r2.pts[n-1].y-oldPt.y)<RUE_EPS)r2.pts[n-1]={x:newPt.x,y:newPt.y};
+    } else {
+      if(Math.hypot(r2.x1-oldPt.x,r2.y1-oldPt.y)<RUE_EPS){r2.x1=newPt.x;r2.y1=newPt.y;delete r2.cx;delete r2.cy;}
+      if(Math.hypot(r2.x2-oldPt.x,r2.y2-oldPt.y)<RUE_EPS){r2.x2=newPt.x;r2.y2=newPt.y;delete r2.cx;delete r2.cy;}
+    }
+  }
+}
+
+// ── Rendu des rues avec jonctions par rognage de lignes ──────────────────
+function drawRuesOffscreen(){
+  if(!rues.length)return;
+  const {trims,lgaps,lgapsPts}=computeJunctionTrims();
+  rues.forEach(r=>drawRue(r,!!(SEL&&SEL.id===r.id),trims.get(r.id)||null,lgaps.get(r.id)||[],lgapsPts.get(r.id)||[]));
+  drawRueArcs();
+}
+
+// Calcule les points d'intersection des bords intérieurs aux jonctions
+function computeJunctionTrims(){
+  const trims=new Map();
+  const lgaps=new Map();     // gaps latéraux (t paramétrique) pour rues droites porteuses
+  const lgapsPts=new Map();  // gaps latéraux (arc-length) pour rues courbées porteuses
+  if(rues.length<2)return {trims,lgaps,lgapsPts};
+
+  function getInit(id){
+    if(!trims.has(id))trims.set(id,{end1:{right:null,left:null},end2:{right:null,left:null}});
+    return trims.get(id);
+  }
+
+  function lineIsect(p1x,p1y,d1x,d1y,p2x,p2y,d2x,d2y){
+    const det=d1x*(-d2y)-(-d2x)*d1y;
+    if(Math.abs(det)<1e-9)return null;
+    const ex=p2x-p1x,ey=p2y-p1y;
+    const t=(ex*(-d2y)-(-d2x)*ey)/det;
+    const s=(d1x*ey-ex*d1y)/det;
+    return {x:p1x+t*d1x,y:p1y+t*d1y,t,s};
+  }
+
+  function getArmsEx(r){
+    const hw=(r.width||300)/2;
+    if(r.pts&&r.pts.length>=2){
+      const n=r.pts.length;
+      const l0=Math.hypot(r.pts[1].x-r.pts[0].x,r.pts[1].y-r.pts[0].y)||1;
+      const l1=Math.hypot(r.pts[n-2].x-r.pts[n-1].x,r.pts[n-2].y-r.pts[n-1].y)||1;
+      return [
+        {pt:r.pts[0],  dx:(r.pts[1].x-r.pts[0].x)/l0,  dy:(r.pts[1].y-r.pts[0].y)/l0,  hw,id:r.id,end:'end1'},
+        {pt:r.pts[n-1],dx:(r.pts[n-2].x-r.pts[n-1].x)/l1,dy:(r.pts[n-2].y-r.pts[n-1].y)/l1,hw,id:r.id,end:'end2'}
+      ];
+    }
+    const len=Math.hypot(r.x2-r.x1,r.y2-r.y1)||1;
+    const ddx=(r.x2-r.x1)/len,ddy=(r.y2-r.y1)/len;
+    return [
+      {pt:{x:r.x1,y:r.y1},dx:ddx, dy:ddy, hw,id:r.id,end:'end1'},
+      {pt:{x:r.x2,y:r.y2},dx:-ddx,dy:-ddy,hw,id:r.id,end:'end2'}
+    ];
+  }
+
+  const jmap=new Map();
+  for(const r of rues){
+    for(const arm of getArmsEx(r)){
+      const key=`${Math.round(arm.pt.x/RUE_EPS)}_${Math.round(arm.pt.y/RUE_EPS)}`;
+      if(!jmap.has(key))jmap.set(key,{arms:[]});
+      jmap.get(key).arms.push(arm);
+    }
+  }
+
+  for(const{arms} of jmap.values()){
+    if(arms.length<2)continue;
+    for(let i=0;i<arms.length;i++){
+      for(let j=i+1;j<arms.length;j++){
+        const a=arms[i],b=arms[j];
+        const rnxA=-a.dy,rnyA=a.dx;
+        const rnxB=-b.dy,rnyB=b.dx;
+
+        // Quand le bras est à end2, la direction est inversée donc left↔right sont échangés
+        // par rapport aux côtés de la rue (sign=+1/-1 dans drawBorder)
+        const kAL=a.end==='end1'?'left':'right';  // bord gauche du bras → côté rue
+        const kAR=a.end==='end1'?'right':'left';
+        const kBL=b.end==='end1'?'left':'right';
+        const kBR=b.end==='end1'?'right':'left';
+
+        // Bord gauche de A × bord droit de B → coin intérieur ?
+        {
+          const I=lineIsect(
+            a.pt.x-rnxA*a.hw,a.pt.y-rnyA*a.hw,a.dx,a.dy,
+            b.pt.x+rnxB*b.hw,b.pt.y+rnyB*b.hw,b.dx,b.dy
+          );
+          if(I&&I.t>0&&I.s>0){
+            const tA=getInit(a.id),tB=getInit(b.id);
+            const eA=tA[a.end],eB=tB[b.end];
+            if(!eA[kAL]||I.t<eA[kAL].dist)eA[kAL]={x:I.x,y:I.y,dist:I.t};
+            if(!eB[kBR]||I.s<eB[kBR].dist)eB[kBR]={x:I.x,y:I.y,dist:I.s};
+          }
+        }
+        // Bord droit de A × bord gauche de B → coin intérieur ?
+        {
+          const I=lineIsect(
+            a.pt.x+rnxA*a.hw,a.pt.y+rnyA*a.hw,a.dx,a.dy,
+            b.pt.x-rnxB*b.hw,b.pt.y-rnyB*b.hw,b.dx,b.dy
+          );
+          if(I&&I.t>0&&I.s>0){
+            const tA=getInit(a.id),tB=getInit(b.id);
+            const eA=tA[a.end],eB=tB[b.end];
+            if(!eA[kAR]||I.t<eA[kAR].dist)eA[kAR]={x:I.x,y:I.y,dist:I.t};
+            if(!eB[kBL]||I.s<eB[kBL].dist)eB[kBL]={x:I.x,y:I.y,dist:I.s};
+          }
+        }
+      }
+    }
+  }
+  // ── PASSE 2 : jonctions latérales (endpoint d'une rue sur le côté d'une autre) ──
+  // Gère rues droites ET courbées comme rue porteuse (r1)
+  for(const r1 of rues){
+    const hw1=(r1.width||300)/2;
+    const isC1=!!(r1.pts&&r1.pts.length>=2);
+    // Pré-calcul géométrie r1
+    let s1=null,cArc1=null,totalArc1=0,p1x=0,p1y=0,l1=0,tx1=0,ty1=0,nx1=0,ny1=0;
+    if(isC1){
+      s1=sampleCatmullRom(r1.pts,80);
+      if(s1.length<2)continue;
+      cArc1=[0];
+      for(let i=1;i<s1.length;i++)cArc1.push(cArc1[i-1]+Math.hypot(s1[i].x-s1[i-1].x,s1[i].y-s1[i-1].y));
+      totalArc1=cArc1[cArc1.length-1];
+    } else {
+      p1x=r1.x1;p1y=r1.y1;
+      l1=Math.hypot(r1.x2-r1.x1,r1.y2-r1.y1)||1;
+      tx1=(r1.x2-r1.x1)/l1;ty1=(r1.y2-r1.y1)/l1;nx1=-ty1;ny1=tx1;
+    }
+
+    for(const r2 of rues){
+      if(r2.id===r1.id)continue;
+      const eps2=r2.pts
+        ?[{ep:r2.pts[0],end:'end1'},{ep:r2.pts[r2.pts.length-1],end:'end2'}]
+        :[{ep:{x:r2.x1,y:r2.y1},end:'end1'},{ep:{x:r2.x2,y:r2.y2},end:'end2'}];
+
+      for(const{ep,end} of eps2){
+        // ── Direction du bras r2 (calculée d'abord, nécessaire pour nearSign courbé) ──
+        const hw2=(r2.width||300)/2;
+        let ax,ay;
+        if(r2.pts){
+          const n=r2.pts.length;
+          if(end==='end1'){const l=Math.hypot(r2.pts[1].x-r2.pts[0].x,r2.pts[1].y-r2.pts[0].y)||1;ax=(r2.pts[1].x-r2.pts[0].x)/l;ay=(r2.pts[1].y-r2.pts[0].y)/l;}
+          else{const n2=n-1,l=Math.hypot(r2.pts[n2-1].x-r2.pts[n2].x,r2.pts[n2-1].y-r2.pts[n2].y)||1;ax=(r2.pts[n2-1].x-r2.pts[n2].x)/l;ay=(r2.pts[n2-1].y-r2.pts[n2].y)/l;}
+        } else {
+          const l2=Math.hypot(r2.x2-r2.x1,r2.y2-r2.y1)||1;
+          const dx2=(r2.x2-r2.x1)/l2,dy2=(r2.y2-r2.y1)/l2;
+          ax=end==='end1'?dx2:-dx2;ay=end==='end1'?dy2:-dy2;
+        }
+        const rnx2=-ay,rny2=ax;
+        const flip=end==='end2';
+
+        // ── Géométrie locale de r1 au point de jonction ──
+        let tx1_l,ty1_l,bpx,bpy,nearSign,tpar,bestI1=-1;
+        if(isC1){
+          // Hôte courbé : trouver le point le plus proche sur la courbe
+          let bestDist1=Infinity;
+          s1.forEach((pt,i)=>{const d=Math.hypot(ep.x-pt.x,ep.y-pt.y);if(d<bestDist1){bestDist1=d;bestI1=i;}});
+          if(bestDist1>hw1*1.5+4)continue;
+          tpar=cArc1[bestI1]/totalArc1;
+          if(tpar<0.05||tpar>0.95)continue; // trop près des extrémités → bout-à-bout
+          const prev1=bestI1>0?s1[bestI1-1]:s1[0],next1=bestI1<s1.length-1?s1[bestI1+1]:s1[s1.length-1];
+          const tgx1=next1.x-prev1.x,tgy1=next1.y-prev1.y,tgl1=Math.hypot(tgx1,tgy1)||1;
+          tx1_l=tgx1/tgl1;ty1_l=tgy1/tgl1;
+          const nx1_l=-ty1_l,ny1_l=tx1_l;
+          const nd=(ep.x-s1[bestI1].x)*nx1_l+(ep.y-s1[bestI1].y)*ny1_l;
+          // nearSign = côté de sortie de r2 hors de r1, basé sur la direction de r2
+          // (pas la position de ep qui peut être proche du centre → nd≈0 → instable)
+          const exitDot=ax*nx1_l+ay*ny1_l;
+          if(Math.abs(exitDot)<0.08)continue; // r2 quasi-tangent à r1 → bout-à-bout
+          nearSign=exitDot>0?1:-1;
+          if(nd*nearSign<-(hw1+4))continue; // ep est du côté opposé → pas latéral
+          bpx=s1[bestI1].x+nx1_l*hw1*nearSign;
+          bpy=s1[bestI1].y+ny1_l*hw1*nearSign;
+        } else {
+          // Hôte droit (code original)
+          const tlen=(ep.x-p1x)*tx1+(ep.y-p1y)*ty1;
+          tpar=tlen/l1;
+          if(tpar<0.01||tpar>0.99)continue;
+          const fpx=p1x+tx1*tlen,fpy=p1y+ty1*tlen;
+          const nd=(ep.x-fpx)*nx1+(ep.y-fpy)*ny1;
+          if(Math.abs(nd)>hw1+4||Math.abs(nd)<0.5)continue;
+          tx1_l=tx1;ty1_l=ty1;
+          nearSign=nd>=0?1:-1;
+          bpx=fpx+nx1*hw1*nearSign;
+          bpy=fpy+ny1*hw1*nearSign;
+        }
+
+        // ── Intersections des deux bords de r2 avec le bord de r1 ──
+        const gapPts=[];
+        for(const[cx2,cy2,bSide] of [
+          [ep.x+rnx2*hw2,ep.y+rny2*hw2,'right'],
+          [ep.x-rnx2*hw2,ep.y-rny2*hw2,'left']
+        ]){
+          let I=null;
+          if(isC1){
+            // Intersection exacte segment par segment avec le vrai bord courbé
+            // (même tangente que drawSide pour cohérence)
+            for(let si=0;si<s1.length-1;si++){
+              const ps0=si>0?s1[si-1]:s1[0],ns0=s1[si+1];
+              const tgx0=ns0.x-ps0.x,tgy0=ns0.y-ps0.y,tgl0=Math.hypot(tgx0,tgy0)||1;
+              const bx0=s1[si].x+(-tgy0/tgl0)*hw1*nearSign,by0=s1[si].y+(tgx0/tgl0)*hw1*nearSign;
+              const ps1_=s1[si],ns1_=si+2<s1.length?s1[si+2]:s1[s1.length-1];
+              const tgx1=ns1_.x-ps1_.x,tgy1=ns1_.y-ps1_.y,tgl1=Math.hypot(tgx1,tgy1)||1;
+              const bx1=s1[si+1].x+(-tgy1/tgl1)*hw1*nearSign,by1=s1[si+1].y+(tgx1/tgl1)*hw1*nearSign;
+              const II=lineIsect(cx2,cy2,ax,ay,bx0,by0,bx1-bx0,by1-by0);
+              if(!II||II.s<-0.05||II.s>1.05)continue;
+              // Préférer le plus petit t positif (trim) ; sinon le plus grand t négatif (extension)
+              const better=!I
+                ||(II.t>0.001&&(I.t<=0.001||II.t<I.t))
+                ||(II.t<=0.001&&I.t<=0.001&&Math.abs(II.t)<Math.abs(I.t));
+              if(better){
+                const arc=cArc1[si]+II.s*(cArc1[Math.min(si+1,cArc1.length-1)]-cArc1[si]);
+                I={x:II.x,y:II.y,t:II.t,arc};
+              }
+            }
+          } else {
+            // Hôte droit : intersection avec la droite du bord
+            const II=lineIsect(cx2,cy2,ax,ay,bpx,bpy,tx1_l,ty1_l);
+            if(II)I={x:II.x,y:II.y,t:II.t};
+          }
+          if(!I||Math.abs(I.t)<0.001)continue;
+
+          const sk=(!flip&&bSide==='right')||(flip&&bSide==='left')?'right':'left';
+          const er=getInit(r2.id)[end];
+          if(I.t>0){
+            if(!er[sk]||I.t<er[sk].dist)er[sk]={x:I.x,y:I.y,dist:I.t,lateral:true};
+          } else {
+            const xk=sk+'X';
+            if(!er[xk]||I.t>er[xk].dist)er[xk]={x:I.x,y:I.y,dist:I.t,lateral:true};
+          }
+          gapPts.push({x:I.x,y:I.y,arc:I.arc??null});
+        }
+
+        // ── Ouverture dans le bord proche de r1 ──
+        if(gapPts.length===2){
+          if(isC1&&gapPts[0].arc!==null&&gapPts[1].arc!==null){
+            // Arc-length précis depuis les intersections exactes sur le bord courbé
+            const halfGap=Math.max(Math.abs(gapPts[0].arc-gapPts[1].arc)/2,hw2*0.4)+3;
+            if(!lgapsPts.has(r1.id))lgapsPts.set(r1.id,[]);
+            lgapsPts.get(r1.id).push({centerArc:(gapPts[0].arc+gapPts[1].arc)/2,hw2_gap:halfGap,sign:nearSign>0?1:-1});
+          } else if(!isC1){
+            const ta=((gapPts[0].x-p1x)*tx1_l+(gapPts[0].y-p1y)*ty1_l)/l1;
+            const tb=((gapPts[1].x-p1x)*tx1_l+(gapPts[1].y-p1y)*ty1_l)/l1;
+            if(!lgaps.has(r1.id))lgaps.set(r1.id,[]);
+            lgaps.get(r1.id).push({gS:Math.min(ta,tb),gE:Math.max(ta,tb),sign:nearSign>0?1:-1});
+          }
+        }
+      }
+    }
+  }
+
+  return {trims,lgaps,lgapsPts};
+}
+
+// Dessine uniquement les arcs extérieurs aux jonctions (coins convexes)
+function drawRueArcs(){
+  if(rues.length<2)return;
+
+  function getArms(r){
+    const hw=(r.width||300)/2;
+    if(r.pts&&r.pts.length>=2){
+      const n=r.pts.length;
+      const l0=Math.hypot(r.pts[1].x-r.pts[0].x,r.pts[1].y-r.pts[0].y)||1;
+      const l1=Math.hypot(r.pts[n-2].x-r.pts[n-1].x,r.pts[n-2].y-r.pts[n-1].y)||1;
+      return [
+        {pt:r.pts[0],  dx:(r.pts[1].x-r.pts[0].x)/l0,  dy:(r.pts[1].y-r.pts[0].y)/l0,  hw},
+        {pt:r.pts[n-1],dx:(r.pts[n-2].x-r.pts[n-1].x)/l1,dy:(r.pts[n-2].y-r.pts[n-1].y)/l1,hw}
+      ];
+    }
+    const len=Math.hypot(r.x2-r.x1,r.y2-r.y1)||1;
+    const ddx=(r.x2-r.x1)/len,ddy=(r.y2-r.y1)/len;
+    return [
+      {pt:{x:r.x1,y:r.y1},dx:ddx, dy:ddy, hw},
+      {pt:{x:r.x2,y:r.y2},dx:-ddx,dy:-ddy,hw}
+    ];
+  }
+
+  const jmap=new Map();
+  for(const r of rues){
+    for(const arm of getArms(r)){
+      const key=`${Math.round(arm.pt.x/RUE_EPS)}_${Math.round(arm.pt.y/RUE_EPS)}`;
+      if(!jmap.has(key))jmap.set(key,{pt:arm.pt,arms:[]});
+      jmap.get(key).arms.push(arm);
+    }
+  }
+
+  cx.save(); cx.lineCap='round'; cx.setLineDash([]);
+  cx.strokeStyle='#1a3a7a'; cx.lineWidth=Math.max(2,2.5*zoom);
+
+  for(const{pt,arms} of jmap.values()){
+    if(arms.length<2)continue;
+    const ps=w2s(pt.x,pt.y);
+    const borders=[];
+    for(const arm of arms){
+      const ra=Math.atan2(arm.dx,-arm.dy);
+      borders.push({angle:ra,        hw:arm.hw,arm});
+      borders.push({angle:ra+Math.PI,hw:arm.hw,arm});
+    }
+    borders.forEach(b=>{while(b.angle>Math.PI)b.angle-=2*Math.PI;while(b.angle<=-Math.PI)b.angle+=2*Math.PI;});
+    borders.sort((a,b)=>a.angle-b.angle);
+    const nb=borders.length;
+    for(let i=0;i<nb;i++){
+      const ba=borders[i],bb=borders[(i+1)%nb];
+      let a0=ba.angle,a1=bb.angle;
+      if(a1<=a0)a1+=2*Math.PI;
+      const span=a1-a0;
+      if(span<0.02||span>Math.PI*1.99)continue;
+      const mid=(a0+a1)/2;
+      const mdx=Math.cos(mid),mdy=Math.sin(mid);
+      let covered=false;
+      for(const arm of arms){if(arm.dx*mdx+arm.dy*mdy>0.01){covered=true;break;}}
+      if(covered)continue;
+      const hw=Math.max(ba.hw,bb.hw);
+      cx.beginPath();cx.arc(ps.x,ps.y,hw*zoom,a0,a1);cx.stroke();
+    }
+  }
+  cx.restore();
+
+}
+
 // ── Dessin des rues ───────────────────────────────────────
-function drawRue(r,sel){
-  if(r.pts&&r.pts.length>=2){drawRuePts(r,sel);return;}
+function drawRue(r,sel,trimInfo=null,lateralGaps=[],lateralGapsPts=[]){
+  if(r.pts&&r.pts.length>=2){drawRuePts(r,sel,trimInfo,lateralGapsPts);return;}
   const{x1,y1,x2,y2}=r;
   const hw=(r.width||300)/2;
   const len=Math.hypot(x2-x1,y2-y1)||1;
@@ -2893,34 +3629,16 @@ function drawRue(r,sel){
   const N=40;
   cx.save();cx.lineCap='round';
 
-  // ── Jonctions côté-spécifiques (ouverture seulement du bon bord) ──
+  // Pas de gaps — le rognage gère proprement les jonctions latérales
   const gaps=[];
-  if(r.cx===undefined){
-    for(const r2 of rues){
-      if(r2.id===r.id)continue;
-      const eps2=r2.pts?[r2.pts[0],r2.pts[r2.pts.length-1]]:[{x:r2.x1,y:r2.y1},{x:r2.x2,y:r2.y2}];
-      for(const ep of eps2){
-        const tlen=(ep.x-x1)*ddx+(ep.y-y1)*ddy;
-        const t=tlen/len;
-        const px=x1+ddx*tlen,py=y1+ddy*tlen;
-        const normalDist=(ep.x-px)*rnx+(ep.y-py)*rny;
-        if(t>0.01&&t<0.99&&Math.abs(normalDist)<hw+8/zoom){
-          let side=0;
-          if(normalDist>hw*0.25)side=1;
-          else if(normalDist<-hw*0.25)side=-1;
-          gaps.push({tC:t,tH:(r2.width||300)/2/len,side});
-        }
-      }
-    }
-  }
-  const inGap=(t,sign)=>gaps.some(g=>Math.abs(t-g.tC)<g.tH&&(g.side===0||g.side===sign));
 
   const col=sel?'#5ab0ff':'#1a3a7a';
-  cx.strokeStyle=col;cx.lineWidth=Math.max(2,2.5*zoom);cx.setLineDash([10*zoom,7*zoom]);
+  cx.strokeStyle=col;cx.lineWidth=Math.max(2,2.5*zoom);cx.setLineDash([10*zoom,16*zoom]);
 
   function drawBorder(sign){
-    cx.beginPath();let pen=false;
+    cx.beginPath();
     if(r.cx!==undefined){
+      let pen=false;
       for(let i=0;i<=N;i++){
         const t=i/N,mt=1-t;
         const bx=mt*mt*x1+2*mt*t*r.cx+t*t*x2;
@@ -2932,11 +3650,36 @@ function drawRue(r,sel){
         if(!pen){cx.moveTo(s.x,s.y);pen=true;}else cx.lineTo(s.x,s.y);
       }
     } else {
-      for(let i=0;i<=N;i++){
-        const t=i/N;
-        if(inGap(t,sign)){pen=false;continue;}
-        const s=w2s(x1+t*(x2-x1)+rnx*hw*sign,y1+t*(y2-y1)+rny*hw*sign);
-        if(!pen){cx.moveTo(s.x,s.y);pen=true;}else cx.lineTo(s.x,s.y);
+      // Rue droite — avec rognage aux jonctions
+      const sk=sign>0?'right':'left';
+      let t0=0,t1=1;
+      if(trimInfo){
+        // Rognage (trim) : déplacer t0 ou t1 vers l'intérieur
+        const e1=trimInfo.end1?.[sk];
+        if(e1){const tp=((e1.x-x1)*ddx+(e1.y-y1)*ddy)/len;if(tp>0&&tp<1)t0=Math.max(t0,tp);}
+        const e2=trimInfo.end2?.[sk];
+        if(e2){const tp=((e2.x-x1)*ddx+(e2.y-y1)*ddy)/len;if(tp>0&&tp<1)t1=Math.min(t1,tp);}
+        // Extension latérale : dépasser l'endpoint pour rejoindre le bord proche
+        const e1x=trimInfo.end1?.[sk+'X'];
+        if(e1x){const tp=((e1x.x-x1)*ddx+(e1x.y-y1)*ddy)/len;if(tp<0&&tp>-0.6)t0=Math.min(t0,tp);}
+        const e2x=trimInfo.end2?.[sk+'X'];
+        if(e2x){const tp=((e2x.x-x1)*ddx+(e2x.y-y1)*ddy)/len;if(tp>1&&tp<1.6)t1=Math.max(t1,tp);}
+      }
+      const segs=[[t0,t1]];
+      // Ouvertures latérales dans le bord proche de r1
+      for(const g of lateralGaps){
+        if(sign!==g.sign)continue;
+        const gS=Math.max(t0,g.gS),gE=Math.min(t1,g.gE);
+        for(let i=segs.length-1;i>=0;i--){
+          const[a,b]=segs[i];
+          if(gE<=a||gS>=b)continue;
+          segs.splice(i,1,...(a<gS?[[a,gS]]:[]),...(gE<b?[[gE,b]]:[]));
+        }
+      }
+      for(const[tS,tE]of segs){
+        const s1=w2s(x1+tS*(x2-x1)+rnx*hw*sign,y1+tS*(y2-y1)+rny*hw*sign);
+        const s2=w2s(x1+tE*(x2-x1)+rnx*hw*sign,y1+tE*(y2-y1)+rny*hw*sign);
+        cx.moveTo(s1.x,s1.y);cx.lineTo(s2.x,s2.y);
       }
     }
     cx.stroke();
@@ -2975,23 +3718,88 @@ function drawRue(r,sel){
   cx.restore();
 }
 
-// Rue B-Spline (pts[]) : dessine les deux bandes
-function drawRuePts(r,sel){
+// Rue B-Spline (pts[]) : dessine les deux bandes avec ouvertures
+function drawRuePts(r,sel,trimInfo=null,lateralGapsPts=[]){
   const hw=(r.width||300)/2;
   const pts=r.pts;
   const s=sampleCatmullRom(pts,80);
   if(s.length<2)return;
+  // Longueurs d'arc cumulées (précises, en unités monde)
+  const cArc=[0];
+  for(let i=1;i<s.length;i++)cArc.push(cArc[i-1]+Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y));
+
+  // Gaps précis depuis PASSE 2 (rues droites ou courbées sur le côté de cette rue courbée)
+  const lgapEntries=lateralGapsPts.map(g=>({centerArc:g.centerArc,hw2:g.hw2_gap,side:g.sign}));
+
+  // Détecter les jonctions approximatives (fallback pour cas non couverts par lgapEntries)
+  const gapsPts=[];
+  for(const r2 of rues){
+    if(r2.id===r.id)continue;
+    const r2eps=r2.pts?[{ep:r2.pts[0],oth:r2.pts[r2.pts.length-1]},{ep:r2.pts[r2.pts.length-1],oth:r2.pts[0]}]
+      :[{ep:{x:r2.x1,y:r2.y1},oth:{x:r2.x2,y:r2.y2}},{ep:{x:r2.x2,y:r2.y2},oth:{x:r2.x1,y:r2.y1}}];
+    for(const{ep,oth} of r2eps){
+      let bestI=0,bestDist=Infinity;
+      s.forEach((pt,i)=>{const d=Math.hypot(ep.x-pt.x,ep.y-pt.y);if(d<bestDist){bestDist=d;bestI=i;}});
+      if(bestDist>hw+12/zoom)continue;
+      if(bestDist<hw*0.25)continue; // bout-à-bout
+      const hw2=(r2.width||300)/2;
+      const centerArc=cArc[bestI];
+      const arcLen=cArc[cArc.length-1];
+      if(centerArc<hw2||centerArc>arcLen-hw2)continue;
+      // Supprimer si déjà couvert par un gap précis de lgapEntries
+      if(lgapEntries.some(g=>Math.abs(g.centerArc-centerArc)<g.hw2+hw2))continue;
+      const prev=bestI>0?s[bestI-1]:s[0];
+      const next=bestI<s.length-1?s[bestI+1]:s[s.length-1];
+      const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
+      const bnx=-tgy/tgl,bny=tgx/tgl;
+      const mx2=(ep.x+oth.x)/2,my2=(ep.y+oth.y)/2;
+      const midNorm=(mx2-s[bestI].x)*bnx+(my2-s[bestI].y)*bny;
+      const epNorm=(ep.x-s[bestI].x)*bnx+(ep.y-s[bestI].y)*bny;
+      let side=0;
+      if(midNorm>hw*0.1||epNorm>hw*0.3)side=1;
+      else if(midNorm<-hw*0.1||epNorm<-hw*0.3)side=-1;
+      gapsPts.push({centerArc,hw2,side});
+    }
+  }
+  // Fusion : gaps précis + approximatifs
+  const allGapsPts=[...gapsPts,...lgapEntries];
+  const inGapPts=(i,sign)=>allGapsPts.some(g=>Math.abs(cArc[i]-g.centerArc)<g.hw2&&(g.side===0||g.side===sign));
+
   cx.save();cx.lineCap='round';
   const col=sel?'#5ab0ff':'#1a3a7a';
-  cx.strokeStyle=col;cx.lineWidth=Math.max(2,2.5*zoom);cx.setLineDash([10*zoom,7*zoom]);
+  cx.strokeStyle=col;cx.lineWidth=Math.max(2,2.5*zoom);cx.setLineDash([10*zoom,16*zoom]);
+
   function drawSide(sign){
+    const sk=sign>0?'right':'left';
     cx.beginPath();let pen=false;
+
+    // Seulement les trims PASSE 2 latéraux (flag lateral:true) — jamais les trims PASSE 1
+    const e1t=trimInfo?.end1?.[sk];       const e1tr=e1t?.lateral?e1t:null;
+    const e1x=trimInfo?.end1?.[sk+'X'];   const e1xr=e1x?.lateral?e1x:null;
+    const e2t=trimInfo?.end2?.[sk];       const e2tr=e2t?.lateral?e2t:null;
+    const e2x=trimInfo?.end2?.[sk+'X'];   const e2xr=e2x?.lateral?e2x:null;
+
+    // Extension avant pts[0] (end1, t<0)
+    if(e1xr&&!e1tr){
+      const p=w2s(e1xr.x,e1xr.y);cx.moveTo(p.x,p.y);pen=true;
+    }
+
     for(let i=0;i<s.length;i++){
-      const prev=i>0?s[i-1]:s[Math.min(i+1,s.length-1)];
-      const next=i<s.length-1?s[i+1]:s[Math.max(0,i-1)];
+      if(inGapPts(i,sign)){pen=false;continue;}
+      const prev=i>0?s[i-1]:s[0];
+      const next=i<s.length-1?s[i+1]:s[s.length-1];
       const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
-      const pt=w2s(s[i].x+(-tgy/tgl)*hw*sign,s[i].y+(tgx/tgl)*hw*sign);
+      let bx=s[i].x+(-tgy/tgl)*hw*sign,by=s[i].y+(tgx/tgl)*hw*sign;
+      // Rognage latéral au début (end1)
+      if(i===0&&e1tr){bx=e1tr.x;by=e1tr.y;}
+      // Rognage latéral à la fin (end2)
+      if(i===s.length-1&&e2tr){bx=e2tr.x;by=e2tr.y;}
+      const pt=w2s(bx,by);
       if(!pen){cx.moveTo(pt.x,pt.y);pen=true;}else cx.lineTo(pt.x,pt.y);
+      // Extension après pts[n-1] (end2, t<0)
+      if(i===s.length-1&&pen&&e2xr&&!e2tr){
+        cx.lineTo(w2s(e2xr.x,e2xr.y).x,w2s(e2xr.x,e2xr.y).y);
+      }
     }
     cx.stroke();
   }
@@ -3063,29 +3871,23 @@ function drawRueBsplinePreview(){
     cx.strokeStyle='rgba(74,200,74,.2)';cx.lineWidth=1;cx.setLineDash([8,5]);
     cx.beginPath();cx.moveTo(g1.x,g1.y);cx.lineTo(g2.x,g2.y);cx.stroke();cx.setLineDash([]);
   }
-  // Remplissage translucide
-  cx.fillStyle='rgba(160,155,148,.45)';
   if(s.length>=2){
-    const side1=[],side2=[];
-    for(let i=0;i<s.length;i++){
-      const prev=i>0?s[i-1]:s[Math.min(i+1,s.length-1)];
-      const next=i<s.length-1?s[i+1]:s[Math.max(0,i-1)];
-      const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
-      const bnx=-tgy/tgl,bny=tgx/tgl;
-      side1.push(w2s(s[i].x+bnx*hw,s[i].y+bny*hw));
-      side2.push(w2s(s[i].x-bnx*hw,s[i].y-bny*hw));
+    // Juste deux lignes en pointillés — identique à la rue finale (pas de fermeture)
+    cx.strokeStyle='#1a3a7a';cx.lineWidth=Math.max(2,2.5*zoom);cx.setLineDash([10*zoom,16*zoom]);
+    for(const sign of[1,-1]){
+      cx.beginPath();let pen=false;
+      for(let i=0;i<s.length;i++){
+        // Tangente correcte aux extrémités
+        const prev=i>0?s[i-1]:s[0];
+        const next=i<s.length-1?s[i+1]:s[s.length-1];
+        const tgx=next.x-prev.x,tgy=next.y-prev.y,tgl=Math.hypot(tgx,tgy)||1;
+        const bnx=-tgy/tgl,bny=tgx/tgl;
+        const pt=w2s(s[i].x+bnx*hw*sign,s[i].y+bny*hw*sign);
+        if(!pen){cx.moveTo(pt.x,pt.y);pen=true;}else cx.lineTo(pt.x,pt.y);
+      }
+      cx.stroke();
     }
-    cx.beginPath();
-    cx.moveTo(side1[0].x,side1[0].y);
-    side1.forEach(pt=>cx.lineTo(pt.x,pt.y));
-    [...side2].reverse().forEach(pt=>cx.lineTo(pt.x,pt.y));
-    cx.closePath();cx.fill();
-    // Bords
-    cx.strokeStyle='rgba(30,30,30,.85)';cx.lineWidth=Math.max(2,3.5*zoom);cx.setLineDash([]);
-    for(const side of[side1,side2]){
-      cx.beginPath();cx.moveTo(side[0].x,side[0].y);
-      side.forEach((pt,i)=>{if(i>0)cx.lineTo(pt.x,pt.y);});cx.stroke();
-    }
+    cx.setLineDash([]);
   }
   // Points de contrôle posés
   allPts.forEach((pt,i)=>{
@@ -3177,20 +3979,21 @@ function setTool(t){
   if(t!=='furn') document.getElementById('furn-panel').style.display='none';
   if(t!=='wall'&&t!=='bspline') document.getElementById('wall-panel').style.display='none';
   if(t!=='rue') document.getElementById('rue-panel').style.display='none';
+  if(t!=='door'&&t!=='door2') document.getElementById('door-panel').style.display='none';
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
-  // bspline est un sous-type de mur → activer le bouton Mur
-  const btnId=t==='bspline'?'btn-wall':('btn-'+t);
+  // bspline → bouton Mur ; door/door2 → bouton Porte
+  const btnId=t==='bspline'?'btn-wall':t==='door2'?'btn-door':('btn-'+t);
   const btn=document.getElementById(btnId);if(btn)btn.classList.add('active');
   if(t==='furn') document.getElementById('btn-furn').classList.add('active');
   const names={select:'Sélection',wall:'Mur droit (clic 1 = départ · clic 2 = fin)',
     room:'Pièce (clic coin 1 → clic coin 2)',
-    door:'Porte P (clic sur mur)',door2:'Double porte DP (clic sur mur)',
+    door:'Porte simple (clic sur mur)',door2:'Double porte (clic sur mur)',
     window:'Fenêtre F (clic sur mur)',camera:'Caméra (2 clics: position+direction)',label:'Étiquette texte',
     calibrate:'Calibration — cliquez le 1er point',
     bspline:'Mur courbé (clic=point, Entrée=finaliser, Dbl-clic=fin)',
     furn:'Meuble (clic=poser, R=tourner 90°)',
     rue:'Rue droite (2 clics) · Rue courbée (clics+Entrée/DblClic pour finir · Retour=annuler dernier pt)'};
-  document.getElementById('ptool').textContent=names[t]||t;
+  const _pt=document.getElementById('ptool');if(_pt)_pt.textContent=names[t]||t;
   document.getElementById('stool').textContent='Outil: '+(names[t]||t);
   cv.style.cursor=t==='select'?'default':CURSOR_CROSS;
   render();
@@ -3252,7 +4055,8 @@ function clearAll(){
 // ── Properties panel ─────────────────────────────────────
 function updatePropPanel(){
   const p=document.getElementById('ppanel');
-  if(!SEL){p.innerHTML='<div class="pl">Cliquez un élément</div>';return;}
+  if(!p)return;
+  if(!SEL){p.innerHTML='';return;}
   const e=SEL;
   const tname={wall:'MUR',door:'PORTE',win:'FENÊTRE',cam:'CAMÉRA',lbl:'TEXTE',corner:'COIN DE MUR',furn:'MEUBLE'};
   let h=`<div style="font-weight:600;color:white;margin-bottom:6px">${tname[e.t]||e.t}</div>`;
@@ -3310,14 +4114,19 @@ function updatePropPanel(){
 // ── History ──────────────────────────────────────────────
 function saveHistory(){
   if(history.length>30)history.shift();
-  history.push(JSON.stringify({walls,doors,wins,cams,lbls,rooms,furnitures}));
+  history.push(JSON.stringify({walls,doors,wins,cams,lbls,rooms,furnitures,rues,autoRoomLabels}));
 }
 function undo(){
   if(!history.length)return;
   const s=JSON.parse(history.pop());
   walls=s.walls;doors=s.doors;wins=s.wins;cams=s.cams;lbls=s.lbls;rooms=s.rooms||[];
-  furnitures=s.furnitures||[];
-  SEL=null;updatePropPanel();render();
+  furnitures=s.furnitures||[];rues=s.rues||[];
+  if(s.autoRoomLabels)Object.assign(autoRoomLabels,s.autoRoomLabels);
+  // Resynchroniser les références dans la couche active
+  const L=layers[activeLayerIdx];
+  if(L){L.walls=walls;L.doors=doors;L.wins=wins;L.cams=cams;
+    L.lbls=lbls;L.rooms=rooms;L.furnitures=furnitures;L.rues=rues;}
+  SEL=null;autoRoomsDirty=true;updatePropPanel();render();
 }
 
 // ── Export ───────────────────────────────────────────────
@@ -3415,7 +4224,12 @@ function exportPDF(){
 
 // ── Sauvegarde / Chargement projet ───────────────────────
 async function saveProject(){
-  const data={version:2,walls,doors,wins,cams,lbls,rooms,furnitures,rues,
+  _saveCurrentLayer();
+  const data={version:3,
+    layers:layers.map(L=>({id:L.id,name:L.name,walls:L.walls,doors:L.doors,
+      wins:L.wins,cams:L.cams,lbls:L.lbls,rooms:L.rooms,furnitures:L.furnitures,
+      rues:L.rues,autoRoomLabels:L.autoRoomLabels||{}})),
+    activeLayerIdx,
     panX,panY,zoom,uid,wallColor,bgOpacity,worldScale};
   const json=JSON.stringify(data,null,2);
   if(window.showSaveFilePicker){
@@ -3447,58 +4261,63 @@ function loadProject(input){
   reader.onload=function(e){
     try{
       const data=JSON.parse(e.target.result);
-      if(!data.walls) throw new Error('Fichier invalide');
-      walls=data.walls||[];
-      doors=data.doors||[];
-      wins=data.wins||[];
-      cams=data.cams||[];
-      lbls=data.lbls||[];
-      rooms=data.rooms||[];
-      furnitures=data.furnitures||[];
-      rues=data.rues||[];
-      panX=data.panX??120;
-      panY=data.panY??200;
-      zoom=data.zoom??1;
-      uid=data.uid??uid;
-      // Propriétés visuelles (version 2+)
-      if(data.wallColor){
-        wallColor=data.wallColor;
-        document.getElementById('wallcolorpicker').value=wallColor;
-        document.getElementById('wallcolorlbl').textContent=wallColor;
-        document.getElementById('legwall').style.background=wallColor;
-      }
+      if(!data.walls&&!data.layers) throw new Error('Fichier invalide');
+      panX=data.panX??120; panY=data.panY??200; zoom=data.zoom??1; uid=data.uid??uid;
+      if(data.wallColor){setWallColor(data.wallColor);}
       if(data.bgOpacity!==undefined){
         bgOpacity=data.bgOpacity;
         const pct=Math.round(bgOpacity*100);
-        document.getElementById('bgopslider').value=pct;
-        document.getElementById('bgoplbl').textContent=pct+'%';
+        const _bs=document.getElementById('bgopslider');if(_bs)_bs.value=pct;
+        const _bl=document.getElementById('bgoplbl');if(_bl)_bl.textContent=pct+'%';
       }
       if(data.worldScale!==undefined&&data.worldScale!==10){
         worldScale=data.worldScale;
         const mm=worldScale,m=mm/10/100;
-        document.getElementById('scalelbl').textContent=
-          m>=1?`Échelle : 1u = ${m.toFixed(2)}m`:`Échelle : 1u = ${(mm/10).toFixed(1)}cm`;
+        const _sl2=document.getElementById('scalelbl');
+        if(_sl2)_sl2.textContent=m>=1?`Échelle : 1u = ${m.toFixed(2)}m`:`Échelle : 1u = ${(mm/10).toFixed(1)}cm`;
       }
-      SEL=null;
-      history=[];
-      autoRoomsDirty=true;
-      updatePropPanel();
-      render();
+      if(data.layers&&data.layers.length){
+        // Format v3 : multi-couches
+        layers=data.layers.map(L=>({
+          id:L.id||('L'+(++_layerCtr)),name:L.name||'Couche',
+          walls:L.walls||[],doors:L.doors||[],wins:L.wins||[],cams:L.cams||[],
+          lbls:L.lbls||[],rooms:L.rooms||[],furnitures:L.furnitures||[],rues:L.rues||[],
+          history:[],autoRoomLabels:L.autoRoomLabels||{}
+        }));
+        activeLayerIdx=Math.min(data.activeLayerIdx||0,layers.length-1);
+      } else {
+        // Format v1/v2 : couche unique → migrer
+        layers=[{id:'L1',name:'Couche 1',
+          walls:data.walls||[],doors:data.doors||[],wins:data.wins||[],cams:data.cams||[],
+          lbls:data.lbls||[],rooms:data.rooms||[],furnitures:data.furnitures||[],rues:data.rues||[],
+          history:[],autoRoomLabels:{}}];
+        activeLayerIdx=0;
+      }
+      _loadLayerData(layers[activeLayerIdx]);
+      SEL=null;history=[];autoRoomsDirty=true;
+      updateLayerPanel();updatePropPanel();render();
     }catch(err){
       alert('Impossible de lire le fichier : '+err.message);
     }
-    input.value=''; // reset pour pouvoir recharger le même fichier
+    input.value='';
   };
   reader.readAsText(file);
 }
 
 // ── Init ─────────────────────────────────────────────────
+// Initialiser le système de couches avec les tableaux globaux actuels
+layers=[{id:'L1',name:'Couche 1',
+  walls,doors,wins,cams,lbls,rooms,furnitures,rues,
+  history,autoRoomLabels:{}}];
+activeLayerIdx=0;
+
 resize();
 // Centrer la feuille entière (3000×2200) dans la vue au démarrage
 zoom=Math.min(W/3000,H/2200)*0.88;
 panX=(W-3000*zoom)/2;
 panY=(H-2200*zoom)/2;
 setTool('wall');
+buildWallPalette();
 render();
 </script>
 <style>
