@@ -60,7 +60,7 @@ canvas{display:block}
     <button class="tbtn" id="btn-wall" onclick="toggleWallPanel()" title="Mur (W)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" fill="none"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="9" x2="3" y2="15"/><line x1="21" y1="9" x2="21" y2="15"/></svg>Mur
     </button>
-    <button class="tbtn" id="btn-room" onclick="setTool('room')" title="Pièce rectangle (R)">
+    <button class="tbtn" id="btn-room" onclick="toggleTool('room')" title="Pièce rectangle (R)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="3" y="3" width="18" height="18" rx="1"/></svg>Pièce
     </button>
     <div class="tsep"></div>
@@ -70,14 +70,14 @@ canvas{display:block}
     <button class="tbtn" id="btn-couche" onclick="toggleCouchePanel()" title="Couche">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="15" width="20" height="3.5" rx="1"/><rect x="2" y="10" width="20" height="3.5" rx="1"/><rect x="2" y="5" width="20" height="3.5" rx="1"/></svg>Couche
     </button>
-    <button class="tbtn" id="btn-window" onclick="setTool('window')" title="Fenêtre F (F)">
+    <button class="tbtn" id="btn-window" onclick="toggleTool('window')" title="Fenêtre F (F)">
       <svg viewBox="0 0 24 24" stroke="#7ab8d4" stroke-width="2" fill="none"><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="14" x2="21" y2="14"/><line x1="3" y1="8" x2="3" y2="16"/><line x1="21" y1="8" x2="21" y2="16"/></svg>Fenêtre
     </button>
     <div class="tsep"></div>
-    <button class="tbtn" id="btn-camera" onclick="setTool('camera')" title="Caméra (C)">
+    <button class="tbtn" id="btn-camera" onclick="toggleTool('camera')" title="Caméra (C)">
       <svg viewBox="0 0 24 24" stroke="#e94560" stroke-width="2" fill="none"><rect x="2" y="7" width="13" height="10" rx="2" fill="rgba(233,69,96,.2)"/><polygon points="15,10 22,7 22,17 15,14" fill="rgba(233,69,96,.2)"/></svg>Caméra
     </button>
-    <button class="tbtn" id="btn-label" onclick="setTool('label')" title="Étiquette (T)">
+    <button class="tbtn" id="btn-label" onclick="toggleTool('label')" title="Étiquette (T)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 6h16M4 12h10M4 18h6"/></svg>Texte
     </button>
     <div class="tsep"></div>
@@ -125,6 +125,25 @@ canvas{display:block}
     @keyframes modalIn{from{opacity:0;transform:scale(.92) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
     </style>
 
+    <!-- Modale confirmation (suppression couche, etc.) -->
+    <div id="confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.68);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+      <div style="background:linear-gradient(145deg,#1a1030,#12081e);border:1.5px solid #6a2040;border-radius:18px;padding:30px 30px 22px;min-width:300px;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.9),0 0 0 1px rgba(233,69,96,.12);display:flex;flex-direction:column;align-items:center;gap:0;animation:modalIn .2s cubic-bezier(.34,1.4,.64,1)">
+        <div id="confirm-modal-icon" style="font-size:36px;margin-bottom:12px;filter:drop-shadow(0 0 10px rgba(233,69,96,.5))"></div>
+        <div id="confirm-modal-title" style="color:white;font-size:15px;font-weight:700;text-align:center;margin-bottom:10px;letter-spacing:.3px"></div>
+        <div id="confirm-modal-body" style="color:#8a9abf;font-size:12px;text-align:center;margin-bottom:24px;line-height:1.7"></div>
+        <div style="display:flex;gap:10px;width:100%">
+          <button id="confirm-modal-cancel" onclick="hideConfirmModal()"
+            style="flex:1;background:transparent;border:1.5px solid #2a3050;border-radius:9px;color:#778baa;cursor:pointer;padding:10px;font-size:12px;font-family:inherit;transition:all .15s"
+            onmouseover="this.style.borderColor='#5a7aaa';this.style.color='white'"
+            onmouseout="this.style.borderColor='#2a3050';this.style.color='#778baa'">Annuler</button>
+          <button id="confirm-modal-ok"
+            style="flex:2;background:linear-gradient(135deg,#6a0818,#e94560);border:1.5px solid #e94560;border-radius:9px;color:white;cursor:pointer;padding:10px;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;box-shadow:0 4px 14px rgba(233,69,96,.35);letter-spacing:.2px"
+            onmouseover="this.style.background='linear-gradient(135deg,#8a1020,#ff5577)';this.style.boxShadow='0 6px 20px rgba(233,69,96,.55)'"
+            onmouseout="this.style.background='linear-gradient(135deg,#6a0818,#e94560)';this.style.boxShadow='0 4px 14px rgba(233,69,96,.35)'">🗑 Supprimer</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modale calque -->
     <div id="calque-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center">
       <div style="background:#16213e;border:1.5px solid #3a6090;border-radius:12px;padding:22px 26px;display:flex;flex-direction:column;gap:11px;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.6)">
@@ -145,7 +164,7 @@ canvas{display:block}
         <button onclick="hideCalqueModal()" style="background:#1a2a4a;border:1px solid #2a4070;border-radius:6px;color:#778baa;cursor:pointer;padding:6px 12px;font-size:11px;text-align:center">✕ Fermer</button>
       </div>
     </div>
-    <button class="tbtn" id="btn-calibrate" onclick="setTool('calibrate')" title="Calibrer l'échelle (2 points)">
+    <button class="tbtn" id="btn-calibrate" onclick="toggleTool('calibrate')" title="Calibrer l'échelle (2 points)">
       <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none"><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="9" x2="2" y2="15"/><line x1="22" y1="9" x2="22" y2="15"/><line x1="12" y1="10" x2="12" y2="14"/></svg>Échelle
     </button>
   </div>
@@ -309,10 +328,15 @@ let bgX=0, bgY=0, bgW=3000, bgH=2200; // position et taille en coordonnées mond
 let worldScale=10, scalePt1=null;
 // Détection automatique des pièces fermées
 let autoRooms=[], autoRoomLabels={}, autoRoomsDirty=true;
+let exportMode=false; // true pendant le rendu pour l'export (masque grille, barre, coins)
 // Saisie directe distance pendant tracé mur
 let wallInput='';
 let wallLabelActive=false;  // true = label cliqué, saisie activée
 let wallDimLabelBBox=null;  // bbox écran du label du mur sélectionné
+// Labels de cote de rue sélectionnée (éditables)
+let rueLabelActive=null;   // 'width' | 'length' | 'name' | null
+let rueLabelInput='';
+let rueLabelBBoxW=null,rueLabelBBoxL=null,rueLabelBBoxName=null;
 // Saisie dimensions pièce — 2 phases
 let roomLockedX=null; // null=phase 1 (largeur), valeur=phase 2 (hauteur)
 let roomInput='';     // valeur en cours de saisie pour la phase active
@@ -498,7 +522,7 @@ function render(){
   // Canvas infini — fond blanc
   cx.fillStyle='#ffffff'; cx.fillRect(0,0,W,H);
 
-  drawGrid();
+  if(!exportMode) drawGrid();
   drawBgImage();
   if(autoRoomsDirty){recomputeAutoRooms();autoRoomsDirty=false;}
   drawAutoRooms();
@@ -555,8 +579,8 @@ function render(){
   lbls.forEach(l=>drawLbl(l));
   furnitures.forEach(f=>drawFurniture(f));
 
-  // Coins de mur (petits ronds aux jonctions)
-  drawCornerDots();
+  // Coins de mur (petits ronds aux jonctions) — masqués à l'export
+  if(!exportMode) drawCornerDots();
 
   // Wall hover highlight (for door/window tools)
   if(hoverPreview) drawPreview(hoverPreview);
@@ -762,7 +786,7 @@ function render(){
     const ghostF={id:-1,t:'furn',ftype:selectedFurnType,x:mx,y:my,angle:0};
     cx.globalAlpha=0.45;drawFurniture(ghostF);cx.globalAlpha=1;
   }
-  drawScaleBar();
+  if(!exportMode) drawScaleBar();
   updateStatus();
 }
 
@@ -813,7 +837,7 @@ function drawGrid(){
 }
 
 function drawBgImage(){
-  if(!bgImage)return;
+  if(!bgImage||exportMode)return;
   const ps=w2s(bgX,bgY),pe=w2s(bgX+bgW,bgY+bgH);
   cx.globalAlpha=bgOpacity;
   cx.drawImage(bgImage,ps.x,ps.y,pe.x-ps.x,pe.y-ps.y);
@@ -871,6 +895,69 @@ function drawDimLine(sx1,sy1,sx2,sy2,label,active=false){
   cx.restore();
   return {x:lx,y:ly,w:lw,h:lh}; // bbox écran du label
 }
+function drawRueNameLabel(sx,sy,r,sel){
+  const nameActive=sel&&rueLabelActive==='name';
+  const rutName=r.name||'';
+  let txt;
+  if(nameActive)      txt=rueLabelInput||'|';
+  else if(rutName)    txt=rutName;
+  else if(sel)        txt='+ nom';
+  else return null; // pas de nom et pas sélectionné → rien
+  cx.save();cx.setLineDash([]);
+  cx.font='bold 12px sans-serif';
+  const tw=cx.measureText(txt).width;
+  const pw=tw+18,ph=22,pr=11;
+  const lx=sx-pw/2,ly=sy-ph/2;
+  cx.fillStyle=nameActive?'rgba(232,246,255,.97)':'rgba(12,24,44,.88)';
+  cx.strokeStyle=nameActive?'#29b5f6':sel?'#3a9fff':'#4a6a9a';
+  cx.lineWidth=nameActive?2:1.2;
+  cx.beginPath();
+  cx.moveTo(lx+pr,ly);cx.lineTo(lx+pw-pr,ly);cx.arcTo(lx+pw,ly,lx+pw,ly+pr,pr);
+  cx.lineTo(lx+pw,ly+ph-pr);cx.arcTo(lx+pw,ly+ph,lx+pw-pr,ly+ph,pr);
+  cx.lineTo(lx+pr,ly+ph);cx.arcTo(lx,ly+ph,lx,ly+ph-pr,pr);
+  cx.lineTo(lx,ly+pr);cx.arcTo(lx,ly,lx+pr,ly,pr);cx.closePath();
+  cx.fill();cx.stroke();
+  cx.fillStyle=nameActive?'#0a3a8c':sel?'#7eb3ff':rutName?'#c0d4f0':'#5a7aaa';
+  cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillText(txt,sx,sy);
+  cx.restore();
+  return sel?{x:lx,y:ly,w:pw,h:ph}:null;
+}
+function applyRueLabelInput(){
+  if(!SEL||SEL.t!=='rue')return;
+  if(rueLabelActive==='name'){
+    SEL.name=(rueLabelInput||'').trim();
+    rueLabelInput='';rueLabelActive=null;render();return;
+  }
+  if(!rueLabelInput)return;
+  const v=parseFloat(rueLabelInput.replace(',','.'));
+  if(!(v>0))return;
+  const vu=v*1000/worldScale;
+  saveHistory();
+  if(rueLabelActive==='width'){
+    SEL.width=vu;
+  } else if(rueLabelActive==='length'){
+    if(SEL.pts){
+      // B-Spline : mise à l'échelle de tous les points depuis pts[0]
+      const s=sampleCatmullRom(SEL.pts,80);
+      const origLen=s.reduce((acc,pt,i,a)=>i?acc+Math.hypot(pt.x-a[i-1].x,pt.y-a[i-1].y):acc,0);
+      if(origLen>0){
+        const sc=vu/origLen;
+        const bx=SEL.pts[0].x,by=SEL.pts[0].y;
+        SEL.pts=SEL.pts.map((pt,i)=>i===0?{...pt}:{x:bx+(pt.x-bx)*sc,y:by+(pt.y-by)*sc});
+      }
+    } else {
+      // Rue droite (ou courbée) : garder x1,y1 ; étirer x2,y2 (et le point de contrôle si courbée)
+      const dx=SEL.x2-SEL.x1,dy=SEL.y2-SEL.y1;
+      const l0=Math.hypot(dx,dy)||1;
+      const sc=vu/l0;
+      SEL.x2=SEL.x1+dx*sc;SEL.y2=SEL.y1+dy*sc;
+      if(SEL.cx!==undefined){SEL.cx=SEL.x1+(SEL.cx-SEL.x1)*sc;SEL.cy=SEL.y1+(SEL.cy-SEL.y1)*sc;}
+    }
+  }
+  rueLabelInput='';rueLabelActive=null;
+  render();
+}
 function applyWallInput(){
   if(!wallInput)return;
   const wu=parseFloat(wallInput.replace(',','.'))*1000/worldScale;
@@ -909,7 +996,12 @@ function loadBgImage(input){
   const file=input.files[0];if(!file)return;
   const url=URL.createObjectURL(file);
   const img=new Image();
-  img.onload=()=>{bgImage=img;bgX=0;bgY=0;bgW=3000;bgH=2200;URL.revokeObjectURL(url);render();};
+  img.onload=()=>{
+    bgImage=img;bgX=0;bgY=0;bgW=3000;bgH=2200;
+    const L=layers[activeLayerIdx];
+    if(L){L.bgImage=img;L.bgX=0;L.bgY=0;L.bgW=3000;L.bgH=2200;}
+    URL.revokeObjectURL(url);render();
+  };
   img.src=url;
   input.value='';
 }
@@ -962,6 +1054,27 @@ document.getElementById('input-modal-field').addEventListener('keydown',e=>{
 document.getElementById('input-modal').addEventListener('mousedown',e=>{
   if(e.target===document.getElementById('input-modal'))_inputModalCancel();
 });
+
+// ── Modale de confirmation ────────────────────────────────
+let _confirmModalCallback=null;
+function showConfirmModal({icon='⚠️',title='',body='',onOk=null}){
+  _confirmModalCallback=onOk;
+  document.getElementById('confirm-modal-icon').textContent=icon;
+  document.getElementById('confirm-modal-title').textContent=title;
+  document.getElementById('confirm-modal-body').innerHTML=body;
+  document.getElementById('confirm-modal-ok').onclick=function(){const cb=_confirmModalCallback;hideConfirmModal();if(cb)cb();};
+  const m=document.getElementById('confirm-modal');
+  m.style.display='flex';
+  const inner=m.firstElementChild;inner.style.animation='none';
+  requestAnimationFrame(()=>{inner.style.animation='';});
+}
+function hideConfirmModal(){
+  document.getElementById('confirm-modal').style.display='none';
+  _confirmModalCallback=null;
+}
+document.getElementById('confirm-modal').addEventListener('mousedown',e=>{
+  if(e.target===document.getElementById('confirm-modal'))hideConfirmModal();
+});
 function replaceCalque(){
   hideCalqueModal();
   document.getElementById('bginput').click();
@@ -969,6 +1082,7 @@ function replaceCalque(){
 function deleteCalque(){
   hideCalqueModal();
   bgImage=null;
+  const L=layers[activeLayerIdx];if(L)L.bgImage=null;
   render();
 }
 
@@ -1805,6 +1919,16 @@ cv.addEventListener('mousedown',e=>{
         applyWallInput();wallLabelActive=false;wallInput='';render();
       }
     }
+    // (0c) Clic sur label de cote de rue sélectionnée
+    if(SEL&&SEL.t==='rue'){
+      if(rueLabelBBoxName){const b=rueLabelBBoxName;
+        if(p.sx>=b.x&&p.sx<=b.x+b.w&&p.sy>=b.y&&p.sy<=b.y+b.h){rueLabelActive='name';rueLabelInput=SEL.name||'';render();return;}}
+      if(rueLabelBBoxW){const b=rueLabelBBoxW;
+        if(p.sx>=b.x&&p.sx<=b.x+b.w&&p.sy>=b.y&&p.sy<=b.y+b.h){rueLabelActive='width';rueLabelInput='';render();return;}}
+      if(rueLabelBBoxL){const b=rueLabelBBoxL;
+        if(p.sx>=b.x&&p.sx<=b.x+b.w&&p.sy>=b.y&&p.sy<=b.y+b.h){rueLabelActive='length';rueLabelInput='';render();return;}}
+      if(rueLabelActive){applyRueLabelInput();}
+    }
     // (0) Clic sur label éditable caméra sélectionnée
     if(SEL&&SEL.t==='cam'){
       for(const bb of camLabelBBoxes){
@@ -1890,7 +2014,9 @@ cv.addEventListener('mousedown',e=>{
       else                     dragOffset={x:p.wx-(hit.x||hit.x1||0), y:p.wy-(hit.y||hit.y1||0)};
       updatePropPanel();render();
     } else {
-      SEL=null;wallInput='';wallLabelActive=false;wallDimLabelBBox=null;camSelField=null;camSelInput='';updatePropPanel();render();
+      SEL=null;wallInput='';wallLabelActive=false;wallDimLabelBBox=null;camSelField=null;camSelInput='';
+      rueLabelActive=null;rueLabelInput='';rueLabelBBoxW=null;rueLabelBBoxL=null;rueLabelBBoxName=null;
+      updatePropPanel();render();
     }
     return;
   }
@@ -2343,6 +2469,14 @@ cv.addEventListener('wheel',e=>{
 
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  // ── Saisie nom de rue : bloquer tous les raccourcis ──
+  if(rueLabelActive==='name'&&SEL&&SEL.t==='rue'){
+    if(e.key==='Escape'){rueLabelActive=null;rueLabelInput='';render();return;}
+    if(e.key==='Enter'){applyRueLabelInput();return;}
+    if(e.key==='Backspace'){e.preventDefault();rueLabelInput=rueLabelInput.slice(0,-1);render();return;}
+    if(e.key.length===1&&!e.ctrlKey&&!e.metaKey){rueLabelInput+=e.key;render();}
+    return; // bloquer tous les autres raccourcis
+  }
   const k=e.key.toLowerCase();
   if(k==='s')setTool('select');
   else if(k==='w')setTool('wall');
@@ -2363,11 +2497,13 @@ document.addEventListener('keydown',e=>{
     rueSt=null;rueInput='';rueLockedW=null;rueAngleSnap=null;rueBsplinePts=[];
     resizingRueWidth=null;resizingRueEndpoint=null;
     wallInput='';wallLabelActive=false;wallDimLabelBBox=null;roomLockedX=null;roomInput='';scalePt1=null;
+    rueLabelActive=null;rueLabelInput='';rueLabelBBoxW=null;rueLabelBBoxL=null;rueLabelBBoxName=null;
     camInput='';camInputMode='angle';camLockedFov=null;resizingCam=null;
     camSelField=null;camSelInput='';
     updatePropPanel();render();
   }
   // ── Backspace (ordre important : inputs avant delete) ──
+  else if(k==='backspace'&&rueLabelActive){e.preventDefault();rueLabelInput=rueLabelInput.slice(0,-1);render();}
   else if(k==='backspace'&&camSelField){e.preventDefault();camSelInput=camSelInput.slice(0,-1);render();}
   else if(k==='backspace'&&wallInput){e.preventDefault();wallInput=wallInput.slice(0,-1);render();}
   else if(k==='backspace'&&tool==='room'&&roomSt&&roomInput){
@@ -2429,6 +2565,8 @@ document.addEventListener('keydown',e=>{
     }
     camSelField=null;camSelInput='';render();
   }
+  // ── Entrée : appliquer label de cote de rue sélectionnée ──
+  else if(k==='enter'&&rueLabelActive&&SEL&&SEL.t==='rue'){applyRueLabelInput();}
   // ── Entrée : appliquer longueur mur (tracé ou sélection) ──
   else if(k==='enter'&&wallInput){applyWallInput();}
   else if(k==='enter'&&tool==='wall'&&wallPts.length>0){wallPts=[];render();}
@@ -2475,6 +2613,11 @@ document.addEventListener('keydown',e=>{
   // ── Saisie chiffres pour label caméra sélectionnée ──
   else if(/^[0-9.,]$/.test(e.key)&&camSelField&&SEL&&SEL.t==='cam'){
     camSelInput+=e.key;render();
+  }
+  // ── Saisie pour labels de rue (nom = tous caractères, cotes = chiffres) ──
+  else if(rueLabelActive&&SEL&&SEL.t==='rue'){
+    if(rueLabelActive==='name'){if(e.key.length===1&&!e.ctrlKey&&!e.metaKey){rueLabelInput+=e.key;render();}}
+    else if(/^[0-9.,]$/.test(e.key)){rueLabelInput+=e.key;render();}
   }
   // ── Saisie chiffres/virgule/point ──
   // Resize mur/porte/fenêtre : uniquement en mode select ou tracé de mur
@@ -3105,9 +3248,12 @@ function toggleWallPanel(){
   const visible=panel.style.display!=='none';
   _closeAllPanels();
   if(!visible){
+    if(tool!=='wall'&&tool!=='bspline') setTool('wall');
     panel.style.display='block';
     document.getElementById('wbtn-droit').classList.toggle('fsel',tool==='wall');
     document.getElementById('wbtn-courbe').classList.toggle('fsel',tool==='bspline');
+  } else {
+    setTool('select'); // reclic → retour Sélection
   }
 }
 function selectWallType(t){
@@ -3119,11 +3265,12 @@ function toggleRuePanel(){
   const visible=panel.style.display!=='none';
   _closeAllPanels();
   if(!visible){
+    if(tool!=='rue') setTool('rue');
     panel.style.display='block';
     document.getElementById('rbtn-droite').classList.toggle('fsel',selectedRueType==='droite');
     document.getElementById('rbtn-courbe').classList.toggle('fsel',selectedRueType==='courbe');
   } else {
-    if(tool==='rue')setTool('select');
+    setTool('select'); // reclic → retour Sélection
   }
 }
 function selectRueType(type){
@@ -3144,8 +3291,9 @@ function toggleDoorPanel(){
   if(!visible){
     panel.style.display='block';
     _updateDoorPanel();
-    // activer le tool correspondant au sous-type actuel
     setTool(doorSubType==='double'?'door2':'door');
+  } else {
+    setTool('select'); // reclic → retour Sélection
   }
 }
 function _updateDoorPanel(){
@@ -3161,7 +3309,14 @@ function toggleCouchePanel(){
   const panel=document.getElementById('couche-panel');
   const visible=panel.style.display!=='none';
   _closeAllPanels();
-  if(!visible){panel.style.display='block';updateLayerPanel();}
+  const btn=document.getElementById('btn-couche');
+  if(!visible){
+    panel.style.display='block';
+    updateLayerPanel();
+    if(btn) btn.classList.add('active');
+  } else {
+    if(btn) btn.classList.remove('active');
+  }
 }
 
 // ── Gestion des couches ───────────────────────────────────
@@ -3171,6 +3326,8 @@ function _saveCurrentLayer(){
   L.walls=walls;L.doors=doors;L.wins=wins;L.cams=cams;
   L.lbls=lbls;L.rooms=rooms;L.furnitures=furnitures;L.rues=rues;
   L.history=history;L.autoRoomLabels=autoRoomLabels;
+  L.bgImage=bgImage;L.bgOpacity=bgOpacity;
+  L.bgX=bgX;L.bgY=bgY;L.bgW=bgW;L.bgH=bgH;
 }
 function _loadLayerData(L){
   walls=L.walls;doors=L.doors;wins=L.wins;cams=L.cams;
@@ -3179,6 +3336,12 @@ function _loadLayerData(L){
   // autoRoomLabels : objet par référence
   Object.keys(autoRoomLabels).forEach(k=>delete autoRoomLabels[k]);
   Object.assign(autoRoomLabels,L.autoRoomLabels||{});
+  // Calque de fond propre à cette couche
+  bgImage=L.bgImage||null;
+  bgOpacity=L.bgOpacity!==undefined?L.bgOpacity:0.4;
+  bgX=L.bgX||0;bgY=L.bgY||0;bgW=L.bgW||3000;bgH=L.bgH||2200;
+  const _bs=document.getElementById('bgopslider');if(_bs)_bs.value=Math.round(bgOpacity*100);
+  const _bl=document.getElementById('bgoplbl');if(_bl)_bl.textContent=Math.round(bgOpacity*100)+'%';
 }
 function switchToLayer(idx){
   if(idx<0||idx>=layers.length||idx===activeLayerIdx)return;
@@ -3186,14 +3349,19 @@ function switchToLayer(idx){
   activeLayerIdx=idx;
   _loadLayerData(layers[idx]);
   SEL=null;autoRoomsDirty=true;
-  updateLayerPanel();render();
+  // Mise à jour visuelle directe (sans reconstruire toute la liste)
+  document.querySelectorAll('#layer-list .layer-item').forEach(el=>{
+    el.classList.toggle('lactive',parseInt(el.dataset.idx)===idx);
+  });
+  render();
 }
 function addLayer(){
   _saveCurrentLayer();
   const n=layers.length+1;
   const L={id:'L'+(++_layerCtr)+'_'+Date.now(),name:'Couche '+n,
     walls:[],doors:[],wins:[],cams:[],lbls:[],rooms:[],furnitures:[],rues:[],
-    history:[],autoRoomLabels:{}};
+    history:[],autoRoomLabels:{},
+    bgImage:null,bgOpacity:0.4,bgX:0,bgY:0,bgW:3000,bgH:2200};
   layers.push(L);
   activeLayerIdx=layers.length-1;
   _loadLayerData(L);
@@ -3201,12 +3369,30 @@ function addLayer(){
   updateLayerPanel();render();
 }
 function deleteLayerAt(idx){
-  if(layers.length<=1)return; // ne pas supprimer la dernière
-  layers.splice(idx,1);
-  if(activeLayerIdx>=layers.length)activeLayerIdx=layers.length-1;
-  _loadLayerData(layers[activeLayerIdx]);
-  SEL=null;autoRoomsDirty=true;
-  updateLayerPanel();render();
+  if(layers.length<=1)return;
+  const L=layers[idx];
+  const cnt=(L.walls||[]).length+(L.doors||[]).length+(L.wins||[]).length+
+    (L.cams||[]).length+(L.lbls||[]).length+(L.rooms||[]).length+
+    (L.furnitures||[]).length+(L.rues||[]).length;
+  const doDelete=()=>{
+    layers.splice(idx,1);
+    if(activeLayerIdx>=layers.length)activeLayerIdx=layers.length-1;
+    _loadLayerData(layers[activeLayerIdx]);
+    SEL=null;autoRoomsDirty=true;
+    updateLayerPanel();render();
+  };
+  if(cnt>0){
+    showConfirmModal({
+      icon:'🗑',
+      title:'Supprimer cette couche ?',
+      body:`<strong style="color:white;font-size:13px">${L.name}</strong><br><br>
+        Cette couche <strong style="color:#e94560">contient des éléments</strong>.<br>
+        <span style="color:#556680;font-size:11px">Cette action est irréversible.</span>`,
+      onOk:doDelete
+    });
+  } else {
+    doDelete();
+  }
 }
 
 let _layerDragSrc=-1;
@@ -3686,34 +3872,40 @@ function drawRue(r,sel,trimInfo=null,lateralGaps=[],lateralGapsPts=[]){
   }
   drawBorder(1);drawBorder(-1);cx.setLineDash([]);
 
+  // Midpoint (commun au label nom + au bloc sel)
+  let midX=(x1+x2)/2,midY=(y1+y2)/2,nxm=rnx,nym=rny;
+  if(r.cx!==undefined){
+    const t=0.5,mt=0.5;
+    midX=mt*mt*x1+2*mt*t*r.cx+t*t*x2;midY=mt*mt*y1+2*mt*t*r.cy+t*t*y2;
+    const tgx=2*(1-t)*(r.cx-x1)+2*t*(x2-r.cx);
+    const tgy=2*(1-t)*(r.cy-y1)+2*t*(y2-r.cy);
+    const tgl=Math.hypot(tgx,tgy)||1;nxm=-tgy/tgl;nym=tgx/tgl;
+  }
+  // Nom de la rue (visible même sans sélection si défini)
+  {const ms=w2s(midX,midY);rueLabelBBoxName=drawRueNameLabel(ms.x,ms.y,r,sel);}
+
   if(sel){
-    let midX=(x1+x2)/2,midY=(y1+y2)/2,nxm=rnx,nym=rny;
-    if(r.cx!==undefined){
-      const t=0.5,mt=0.5;
-      midX=mt*mt*x1+2*mt*t*r.cx+t*t*x2;midY=mt*mt*y1+2*mt*t*r.cy+t*t*y2;
-      const tgx=2*(1-t)*(r.cx-x1)+2*t*(x2-r.cx);
-      const tgy=2*(1-t)*(r.cy-y1)+2*t*(y2-r.cy);
-      const tgl=Math.hypot(tgx,tgy)||1;nxm=-tgy/tgl;nym=tgx/tgl;
-    }
+    // Handles largeur (bleus)
     [1,-1].forEach(sign=>{
       const wp=w2s(midX+nxm*hw*sign,midY+nym*hw*sign);
       cx.fillStyle='#3a9fff';cx.strokeStyle='white';cx.lineWidth=2;
       cx.beginPath();cx.arc(wp.x,wp.y,7,0,2*Math.PI);cx.fill();cx.stroke();
     });
+    // Handles extrémités (oranges)
     [w2s(x1,y1),w2s(x2,y2)].forEach(ep=>{
       cx.fillStyle='#ff9500';cx.strokeStyle='white';cx.lineWidth=2;
       cx.beginPath();cx.arc(ep.x,ep.y,7,0,2*Math.PI);cx.fill();cx.stroke();
     });
-    const ms=w2s(midX,midY);
-    const wlbl=formatDist((r.width||300)*worldScale);
-    const llbl=formatDist(len*worldScale);
-    cx.font=`bold ${11*zoom}px sans-serif`;
-    const lbl=`L: ${llbl}  l: ${wlbl}`;
-    const fw=cx.measureText(lbl).width+12;
-    cx.fillStyle='rgba(255,255,255,.95)';cx.strokeStyle='#3a9fff';cx.lineWidth=1.5;
-    cx.beginPath();cx.rect(ms.x-fw/2,ms.y-26,fw,18);cx.fill();cx.stroke();
-    cx.fillStyle='#0a3a8c';cx.textAlign='center';cx.textBaseline='middle';
-    cx.fillText(lbl,ms.x,ms.y-17);
+    // Labels de cote éditables (largeur + longueur)
+    const pw1=w2s(midX+nxm*hw,midY+nym*hw);
+    const pw2=w2s(midX-nxm*hw,midY-nym*hw);
+    const ep1s=w2s(x1,y1),ep2s=w2s(x2,y2);
+    const wActive=rueLabelActive==='width';
+    const lActive=rueLabelActive==='length';
+    const wlbl=wActive&&rueLabelInput?rueLabelInput+' m':formatDist((r.width||300)*worldScale);
+    const llbl=lActive&&rueLabelInput?rueLabelInput+' m':formatDist(len*worldScale);
+    rueLabelBBoxW=drawDimLine(pw1.x,pw1.y,pw2.x,pw2.y,wlbl,wActive);
+    rueLabelBBoxL=drawDimLine(ep1s.x,ep1s.y,ep2s.x,ep2s.y,llbl,lActive);
   }
   cx.restore();
 }
@@ -3804,8 +3996,14 @@ function drawRuePts(r,sel,trimInfo=null,lateralGapsPts=[]){
     cx.stroke();
   }
   drawSide(1);drawSide(-1);cx.setLineDash([]);
+  // Nom de la rue (calculer le midpoint une fois pour tout)
+  const _rinfo=midInfoRuePts(r);
+  if(_rinfo&&(sel||r.name)){
+    const _ms=w2s(_rinfo.x,_rinfo.y);
+    rueLabelBBoxName=drawRueNameLabel(_ms.x,_ms.y,r,sel);
+  }
   if(sel){
-    const info=midInfoRuePts(r);
+    const info=_rinfo;
     if(info){
       // Handles largeur (bleus)
       [1,-1].forEach(sign=>{
@@ -3813,18 +4011,17 @@ function drawRuePts(r,sel,trimInfo=null,lateralGapsPts=[]){
         cx.fillStyle='#3a9fff';cx.strokeStyle='white';cx.lineWidth=2;
         cx.beginPath();cx.arc(wp.x,wp.y,7,0,2*Math.PI);cx.fill();cx.stroke();
       });
-      // Label longueur/largeur
+      // Labels de cote éditables (largeur + longueur)
       const llen=info.sampled.reduce((acc,p,i,a)=>i?acc+Math.hypot(p.x-a[i-1].x,p.y-a[i-1].y):acc,0);
-      const ms=w2s(info.x,info.y);
-      const wlbl=formatDist((r.width||300)*worldScale);
-      const llbl=formatDist(llen*worldScale);
-      cx.font=`bold ${11*zoom}px sans-serif`;
-      const lbl=`L: ${llbl}  l: ${wlbl}`;
-      const fw=cx.measureText(lbl).width+12;
-      cx.fillStyle='rgba(255,255,255,.95)';cx.strokeStyle='#3a9fff';cx.lineWidth=1.5;
-      cx.beginPath();cx.rect(ms.x-fw/2,ms.y-26,fw,18);cx.fill();cx.stroke();
-      cx.fillStyle='#0a3a8c';cx.textAlign='center';cx.textBaseline='middle';
-      cx.fillText(lbl,ms.x,ms.y-17);
+      const pw1=w2s(info.x+info.nx*hw,info.y+info.ny*hw);
+      const pw2=w2s(info.x-info.nx*hw,info.y-info.ny*hw);
+      const ep1s=w2s(pts[0].x,pts[0].y),ep2s=w2s(pts[pts.length-1].x,pts[pts.length-1].y);
+      const wActive=rueLabelActive==='width';
+      const lActive=rueLabelActive==='length';
+      const wlbl=wActive&&rueLabelInput?rueLabelInput+' m':formatDist((r.width||300)*worldScale);
+      const llbl=lActive&&rueLabelInput?rueLabelInput+' m':formatDist(llen*worldScale);
+      rueLabelBBoxW=drawDimLine(pw1.x,pw1.y,pw2.x,pw2.y,wlbl,wActive);
+      rueLabelBBoxL=drawDimLine(ep1s.x,ep1s.y,ep2s.x,ep2s.y,llbl,lActive);
     }
     // Handles extrémités (oranges)
     [pts[0],pts[pts.length-1]].forEach(ep=>{
@@ -3966,11 +4163,16 @@ function drawRuePreview(){
   cx.restore();
 }
 
+function toggleTool(t){
+  if(tool===t) setTool('select');
+  else setTool(t);
+}
 function setTool(t){
   // Annuler tout ce qui était en cours dans l'ancien mode (déselectionner aussi)
   tool=t;wallPts=[];roomSt=null;camSt=null;hoverPreview=null;
-  wallInput='';roomLockedX=null;roomInput='';bsplinePts=[];
+  wallInput='';wallLabelActive=false;roomLockedX=null;roomInput='';bsplinePts=[];scalePt1=null;
   rueSt=null;rueInput='';rueLockedW=null;rueAngleSnap=null;rueBsplinePts=[];
+  rueLabelActive=null;rueLabelInput='';rueLabelBBoxW=null;rueLabelBBoxL=null;rueLabelBBoxName=null;
   resizingRueWidth=null;resizingRueEndpoint=null;
   SEL=null;
   camInput='';camInputMode='angle';camLockedFov=null;camSelField=null;camSelInput='';
@@ -3980,6 +4182,7 @@ function setTool(t){
   if(t!=='wall'&&t!=='bspline') document.getElementById('wall-panel').style.display='none';
   if(t!=='rue') document.getElementById('rue-panel').style.display='none';
   if(t!=='door'&&t!=='door2') document.getElementById('door-panel').style.display='none';
+  document.getElementById('couche-panel').style.display='none';
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
   // bspline → bouton Mur ; door/door2 → bouton Porte
   const btnId=t==='bspline'?'btn-wall':t==='door2'?'btn-door':('btn-'+t);
@@ -4130,96 +4333,118 @@ function undo(){
 }
 
 // ── Export ───────────────────────────────────────────────
-function exportPNG(){
-  // Calculer le rectangle englobant tous les éléments (en coordonnées monde)
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  const exp=(x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
-  walls.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
-  doors.forEach(d=>{exp(d.x1,d.y1);exp(d.x2,d.y2);});
-  wins.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
-  cams.forEach(c=>{exp(c.x-200,c.y-200);exp(c.x+200,c.y+200);}); // inclure le cône
-  lbls.forEach(l=>{exp(l.x,l.y);});
-  rooms.forEach(r=>{exp(r.x1,r.y1);exp(r.x2,r.y2);});
 
-  // Rien à exporter → vue courante
-  if(minX===Infinity){
-    const old=SEL;SEL=null;render();
-    const a=document.createElement('a');a.download='plan_videoprotection.png';a.href=cv.toDataURL('image/png');a.click();
-    SEL=old;render();return;
-  }
-
-  // Marge autour du contenu
-  const pad=G.sz*5*2; // 2 grands carreaux
-  minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
-  const bw=maxX-minX, bh=maxY-minY;
-
-  // Résolution d'export : max 3000px sur le grand côté, min zoom=1
-  const expZoom=Math.min(3000/Math.max(bw,bh), 3);
-  const expW=Math.round(bw*expZoom);
-  const expH=Math.round(bh*expZoom);
-
-  // Sauvegarder l'état courant
-  const sW=W,sH=H,sPX=panX,sPY=panY,sZ=zoom,sSEL=SEL;
-  SEL=null;
-
-  // Appliquer l'état export
-  W=expW; H=expH; zoom=expZoom;
-  panX=-minX*expZoom; panY=-minY*expZoom;
-  cv.width=expW; cv.height=expH;
-
-  render();
-
-  const a=document.createElement('a');
-  a.download='plan_videoprotection.png';
-  a.href=cv.toDataURL('image/png');
-  a.click();
-
-  // Restaurer l'état
-  W=sW; H=sH; panX=sPX; panY=sPY; zoom=sZ; SEL=sSEL;
-  cv.width=sW; cv.height=sH;
-  render();
+// Calcule le rectangle englobant d'un jeu de données
+function _layerBounds(lw,ld,lwin,lc,ll,lrooms,lrues){
+  let mnX=Infinity,mnY=Infinity,mxX=-Infinity,mxY=-Infinity;
+  const e=(x,y)=>{mnX=Math.min(mnX,x);mnY=Math.min(mnY,y);mxX=Math.max(mxX,x);mxY=Math.max(mxY,y);};
+  lw.forEach(w=>{e(w.x1,w.y1);e(w.x2,w.y2);});
+  ld.forEach(d=>{e(d.x1,d.y1);e(d.x2,d.y2);});
+  lwin.forEach(w=>{e(w.x1,w.y1);e(w.x2,w.y2);});
+  lc.forEach(c=>{e(c.x-200,c.y-200);e(c.x+200,c.y+200);});
+  ll.forEach(l=>{e(l.x,l.y);});
+  (lrooms||[]).forEach(r=>{e(r.x1,r.y1);e(r.x2,r.y2);});
+  (lrues||[]).forEach(r=>{
+    if(r.pts&&r.pts.length){r.pts.forEach(p=>e(p.x,p.y));}
+    else{e(r.x1,r.y1);e(r.x2,r.y2);}
+  });
+  return{mnX,mnY,mxX,mxY,empty:mnX===Infinity};
 }
-function exportPDF(){
-  // Même calcul de rectangle englobant que PNG
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  const exp=(x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
-  walls.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
-  doors.forEach(d=>{exp(d.x1,d.y1);exp(d.x2,d.y2);});
-  wins.forEach(w=>{exp(w.x1,w.y1);exp(w.x2,w.y2);});
-  cams.forEach(c=>{exp(c.x-200,c.y-200);exp(c.x+200,c.y+200);});
-  lbls.forEach(l=>{exp(l.x,l.y);});
-  rooms.forEach(r=>{exp(r.x1,r.y1);exp(r.x2,r.y2);});
 
-  if(minX===Infinity){window.print();return;}
-
-  const pad=G.sz*5*2;
-  minX-=pad;minY-=pad;maxX+=pad;maxY+=pad;
-  const bw=maxX-minX, bh=maxY-minY;
-
-  // A4 paysage 150dpi : 1754×1240 — portrait : 1240×1754
-  const landscape=bw>=bh;
-  const pgW=landscape?1754:1240, pgH=landscape?1240:1754;
-  const pdfZoom=Math.min(pgW/bw, pgH/bh)*0.95;
-  const pdfW=Math.round(bw*pdfZoom), pdfH=Math.round(bh*pdfZoom);
-
-  // Sauvegarder l'état courant
+// Rend une couche en mémoire et retourne le dataURL (+ restaure l'état)
+function _renderLayerDataURL(L, targetW, targetH, targetZoom, offX, offY){
   const sW=W,sH=H,sPX=panX,sPY=panY,sZ=zoom,sSEL=SEL;
-  SEL=null;
-
-  // Appliquer l'état PDF
-  W=pdfW; H=pdfH; zoom=pdfZoom;
-  panX=-minX*pdfZoom; panY=-minY*pdfZoom;
-  cv.width=pdfW; cv.height=pdfH;
+  walls=L.walls;doors=L.doors;wins=L.wins;cams=L.cams;
+  lbls=L.lbls;rooms=L.rooms;furnitures=L.furnitures;rues=L.rues;
+  // Calque de fond propre à la couche exportée
+  bgImage=L.bgImage||null;
+  bgOpacity=L.bgOpacity!==undefined?L.bgOpacity:0.4;
+  bgX=L.bgX||0;bgY=L.bgY||0;bgW=L.bgW||3000;bgH=L.bgH||2200;
+  autoRoomsDirty=true; SEL=null;
+  W=targetW; H=targetH; zoom=targetZoom; panX=offX; panY=offY;
+  cv.width=targetW; cv.height=targetH;
+  exportMode=true;  // masque grille, barre d'échelle, points de coin
   render();
+  exportMode=false;
+  const url=cv.toDataURL('image/png');
+  // Restaurer (y compris bg* via _loadLayerData)
+  _loadLayerData(layers[activeLayerIdx]);
+  autoRoomsDirty=true; SEL=sSEL;
+  W=sW; H=sH; zoom=sZ; panX=sPX; panY=sPY;
+  cv.width=sW; cv.height=sH;
+  return url;
+}
 
-  // Restaurer après impression
-  window.onafterprint=function(){
-    W=sW;H=sH;panX=sPX;panY=sPY;zoom=sZ;SEL=sSEL;
-    cv.width=sW;cv.height=sH;
-    window.onafterprint=null;
-    render();
-  };
-  window.print();
+function exportPNG(){
+  _saveCurrentLayer();
+  const results=[];
+  for(const L of layers){
+    const b=_layerBounds(L.walls,L.doors,L.wins,L.cams,L.lbls,L.rooms,L.rues);
+    if(b.empty){results.push(null);continue;}
+    const pad=G.sz*5*2;
+    const mnX=b.mnX-pad,mnY=b.mnY-pad,bw=b.mxX-b.mnX+pad*2,bh=b.mxY-b.mnY+pad*2;
+    const ez=Math.min(3000/Math.max(bw,bh),3);
+    const eW=Math.round(bw*ez),eH=Math.round(bh*ez);
+    results.push({url:_renderLayerDataURL(L,eW,eH,ez,-mnX*ez,-mnY*ez),name:L.name});
+  }
+  render(); // restaurer la vue courante
+  const toGet=results.filter(Boolean);
+  if(!toGet.length)return;
+  const multi=toGet.length>1;
+  toGet.forEach((r,i)=>{
+    setTimeout(()=>{
+      const a=document.createElement('a');
+      a.download=`plan_videoprotection${multi?'_'+r.name:''}.png`;
+      a.href=r.url; a.click();
+    },i*250);
+  });
+}
+
+function exportPDF(){
+  _saveCurrentLayer();
+  const pc=document.getElementById('print-container');
+  pc.innerHTML='';
+  let hasContent=false;
+  const imgEls=[];
+  for(const L of layers){
+    const b=_layerBounds(L.walls,L.doors,L.wins,L.cams,L.lbls,L.rooms,L.rues);
+    if(b.empty) continue;
+    const pad=G.sz*5*2;
+    const mnX=b.mnX-pad,mnY=b.mnY-pad,bw=b.mxX-b.mnX+pad*2,bh=b.mxY-b.mnY+pad*2;
+    const landscape=bw>=bh;
+    const pgW=landscape?1754:1240,pgH=landscape?1240:1754;
+    const pz=Math.min(pgW/bw,pgH/bh)*0.95;
+    const pW=Math.round(bw*pz),pH=Math.round(bh*pz);
+    const url=_renderLayerDataURL(L,pW,pH,pz,-mnX*pz,-mnY*pz);
+    // Wrapper — une page entière par couche
+    const page=document.createElement('div');
+    page.className='print-page';
+    const lbl=document.createElement('div');
+    lbl.className='print-label';lbl.textContent=L.name;
+    const img=document.createElement('img');
+    img.src=url; img.alt=L.name;
+    imgEls.push(img);
+    page.appendChild(lbl); page.appendChild(img);
+    pc.appendChild(page);
+    hasContent=true;
+  }
+  render(); // restaurer la vue courante
+  if(!hasContent) return;
+  // Afficher le container AVANT d'attendre (le navigateur peut décoder les images)
+  pc.style.display='block';
+  // Attendre que toutes les images soient décodées, puis un frame de rendu, puis imprimer
+  const waits=imgEls.map(im=>
+    im.complete ? Promise.resolve() :
+    new Promise(res=>{im.onload=res; im.onerror=res;})
+  );
+  Promise.all(waits).then(()=>requestAnimationFrame(()=>{
+    window.onafterprint=function(){
+      pc.style.display='none';
+      pc.innerHTML='';
+      window.onafterprint=null;
+    };
+    window.print();
+  }));
 }
 
 // ── Sauvegarde / Chargement projet ───────────────────────
@@ -4228,9 +4453,11 @@ async function saveProject(){
   const data={version:3,
     layers:layers.map(L=>({id:L.id,name:L.name,walls:L.walls,doors:L.doors,
       wins:L.wins,cams:L.cams,lbls:L.lbls,rooms:L.rooms,furnitures:L.furnitures,
-      rues:L.rues,autoRoomLabels:L.autoRoomLabels||{}})),
+      rues:L.rues,autoRoomLabels:L.autoRoomLabels||{},
+      bgOpacity:L.bgOpacity!==undefined?L.bgOpacity:0.4,
+      bgX:L.bgX||0,bgY:L.bgY||0,bgW:L.bgW||3000,bgH:L.bgH||2200})),
     activeLayerIdx,
-    panX,panY,zoom,uid,wallColor,bgOpacity,worldScale};
+    panX,panY,zoom,uid,wallColor,worldScale};
   const json=JSON.stringify(data,null,2);
   if(window.showSaveFilePicker){
     try{
@@ -4282,7 +4509,10 @@ function loadProject(input){
           id:L.id||('L'+(++_layerCtr)),name:L.name||'Couche',
           walls:L.walls||[],doors:L.doors||[],wins:L.wins||[],cams:L.cams||[],
           lbls:L.lbls||[],rooms:L.rooms||[],furnitures:L.furnitures||[],rues:L.rues||[],
-          history:[],autoRoomLabels:L.autoRoomLabels||{}
+          history:[],autoRoomLabels:L.autoRoomLabels||{},
+          bgImage:null,
+          bgOpacity:L.bgOpacity!==undefined?L.bgOpacity:0.4,
+          bgX:L.bgX||0,bgY:L.bgY||0,bgW:L.bgW||3000,bgH:L.bgH||2200
         }));
         activeLayerIdx=Math.min(data.activeLayerIdx||0,layers.length-1);
       } else {
@@ -4290,7 +4520,10 @@ function loadProject(input){
         layers=[{id:'L1',name:'Couche 1',
           walls:data.walls||[],doors:data.doors||[],wins:data.wins||[],cams:data.cams||[],
           lbls:data.lbls||[],rooms:data.rooms||[],furnitures:data.furnitures||[],rues:data.rues||[],
-          history:[],autoRoomLabels:{}}];
+          history:[],autoRoomLabels:{},
+          bgImage:null,
+          bgOpacity:data.bgOpacity!==undefined?data.bgOpacity:0.4,
+          bgX:0,bgY:0,bgW:3000,bgH:2200}];
         activeLayerIdx=0;
       }
       _loadLayerData(layers[activeLayerIdx]);
@@ -4308,7 +4541,8 @@ function loadProject(input){
 // Initialiser le système de couches avec les tableaux globaux actuels
 layers=[{id:'L1',name:'Couche 1',
   walls,doors,wins,cams,lbls,rooms,furnitures,rues,
-  history,autoRoomLabels:{}}];
+  history,autoRoomLabels:{},
+  bgImage:null,bgOpacity:0.4,bgX:0,bgY:0,bgW:3000,bgH:2200}];
 activeLayerIdx=0;
 
 resize();
@@ -4320,12 +4554,30 @@ setTool('wall');
 buildWallPalette();
 render();
 </script>
+<!-- Container d'impression multi-couches (caché sauf pendant window.print()) -->
+<div id="print-container" style="display:none"></div>
+
 <style>
+@page{ margin:0 }   /* supprime date, URL, titre et numéro de page du navigateur */
 @media print{
-  #header,#toolbar,#sidebar,#sbar{display:none!important}
-  #main{display:block}
-  #cvwrap{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:white}
-  canvas{max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important;}
+  /* Masquer toute l'interface */
+  #header,#toolbar,#main,#sbar,
+  #wall-panel,#rue-panel,#furn-panel,#door-panel,#couche-panel,
+  #calque-modal,#input-modal,#confirm-modal{ display:none!important }
+  /* Une page = un wrapper par couche */
+  #print-container .print-page{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    width:100vw;min-height:100vh;
+    page-break-after:always;page-break-inside:avoid;break-after:page;break-inside:avoid;
+  }
+  #print-container .print-page:last-child{page-break-after:avoid;break-after:avoid}
+  #print-container .print-label{
+    font-family:sans-serif;font-size:13pt;font-weight:bold;color:#222;
+    padding:0 0 4mm;text-align:center;
+  }
+  #print-container .print-page img{
+    max-width:100%;max-height:calc(100vh - 20mm);height:auto;display:block;
+  }
 }
 </style>
 </body>
